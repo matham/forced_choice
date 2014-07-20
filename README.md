@@ -1,4 +1,4 @@
-MoaDevs
+Go nogo
 =======
 
-PyBarst devices wrapped for use with Moa.
+A go/nogo experiment with moa and pybarst.
