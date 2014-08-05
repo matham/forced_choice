@@ -5,20 +5,19 @@
 __all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIPin',
            'FTDIOdors', 'DAQInDevice', 'DAQOutDevice')
 
-import csv
 from functools import partial
-from os.path import join
 
 from moa.compat import bytes_type, unicode_type
 from moa.threads import ScheduledEventLoop
 from moa.device import Device
+from moa.device.digital import ButtonPort
 
 from pybarst.core.server import BarstServer
 from pybarst.ftdi import FTDIChannel
 from pybarst.ftdi.switch import PinSettings, SerializerSettings
 from pybarst.mcdaq import MCDAQChannel
-from pybarst.moa.ftdi import FTDIPinDevice, FTDISerializerDevice
-from pybarst.moa.mcdaq import MCDAQDevice
+from moadevs.ftdi import FTDIPinDevice, FTDISerializerDevice
+from moadevs.mcdaq import MCDAQDevice
 
 from kivy.properties import ConfigParserProperty, BooleanProperty, ListProperty
 from kivy.app import App
@@ -32,11 +31,12 @@ class DeviceStageInterface(object):
     on exception functionality.
     '''
 
-    exception_callback = lambda self, *largs: Clock.schedule_once(partial(
-        App.get_running_app().device_exception, *largs))
+    exception_callback = None
 
     def handle_exception(self, exception, event):
-        self.exception_callback(exception, event)
+        callback = self.exception_callback = partial(
+            App.get_running_app().device_exception, exception, event)
+        Clock.schedule_once(callback)
 
     def start_device(self, started_callback):
         pass
@@ -85,7 +85,16 @@ class FTDIDevChannel(DeviceStageInterface, ScheduledEventLoop, Device):
                                      device_config_name, val_type=bytes_type)
 
 
-class FTDIPin(DeviceStageInterface, FTDIPinDevice):
+class FTDIPinBase(object):
+
+    pump = BooleanProperty(False, allownone=True)
+
+
+class FTDIPinSim(FTDIPinBase, ButtonPort):
+    pass
+
+
+class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
 
     def __init__(self, **kwargs):
         mapping = {'pump': self.pump_pin}
@@ -107,36 +116,8 @@ class FTDIPin(DeviceStageInterface, FTDIPinDevice):
     pump_pin = ConfigParserProperty(0, 'FTDI_pin', 'pump_pin',
                                     device_config_name, val_type=int)
 
-    pump = BooleanProperty(False, allownone=True)
 
-
-class FTDIOdors(DeviceStageInterface, FTDISerializerDevice):
-
-    def __init__(self, **kwargs):
-        N = 8 * self.num_boards
-        mapping = {'p{}'.format(i): i for i in range(N)}
-        super(FTDIOdors, self).__init__(mapping=mapping, input=False, **kwargs)
-
-        # now read the odor list
-        with open(join(App.get_running_app().data_directory, self.odor_path),
-                  'rb') as fh:
-            odors = self.odors = ['Odor_{}'.format(i) for i in range(N)]
-            for row in csv.reader(fh):
-                odors[int(row[0])] = row[1]
-
-    def get_settings(self):
-        return SerializerSettings(clock_bit=self.clock_bit,
-            data_bit=self.data_bit, latch_bit=self.latch_bit,
-            num_boards=self.num_boards, output=True)
-
-    def start_device(self, started_callback):
-        self.request_callback('activate_odor_device', started_callback)
-
-    def activate_odor_device(self):
-        odors = self.target
-        odors.open_channel()
-        odors.set_state(True)
-        odors.write(set_low=range(8 * self.num_boards))
+class FTDIOdorsBase(object):
 
     p0 = BooleanProperty(False, allownone=True)
 
@@ -170,6 +151,34 @@ class FTDIOdors(DeviceStageInterface, FTDISerializerDevice):
 
     p15 = BooleanProperty(False, allownone=True)
 
+    num_boards = ConfigParserProperty(1, 'FTDI_odor', 'num_boards',
+                                      device_config_name, val_type=int)
+
+
+class FTDIOdorsSim(FTDIOdorsBase, ButtonPort):
+    pass
+
+
+class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
+
+    def __init__(self, **kwargs):
+        mapping = {'p{}'.format(i): i for i in range(8 * self.num_boards)}
+        super(FTDIOdors, self).__init__(mapping=mapping, **kwargs)
+
+    def get_settings(self):
+        return SerializerSettings(clock_bit=self.clock_bit,
+            data_bit=self.data_bit, latch_bit=self.latch_bit,
+            num_boards=self.num_boards, output=True)
+
+    def start_device(self, started_callback):
+        self.request_callback('activate_odor_device', started_callback)
+
+    def activate_odor_device(self):
+        odors = self.target
+        odors.open_channel()
+        odors.set_state(True)
+        odors.write(set_low=range(8 * self.num_boards))
+
     clock_bit = ConfigParserProperty(0, 'FTDI_odor', 'clock_bit',
                                      device_config_name, val_type=int)
 
@@ -179,16 +188,19 @@ class FTDIOdors(DeviceStageInterface, FTDISerializerDevice):
     latch_bit = ConfigParserProperty(0, 'FTDI_odor', 'latch_bit',
                                      device_config_name, val_type=int)
 
-    num_boards = ConfigParserProperty(1, 'FTDI_odor', 'num_boards',
-                                      device_config_name, val_type=int)
 
-    odor_path = ConfigParserProperty(u'odor_list.txt', 'FTDI_odor',
-        'Odor_list_path', device_config_name, val_type=unicode_type)
+class DAQInDeviceBase(object):
 
-    odors = ListProperty([])
+    nose_beam = BooleanProperty(False, allownone=True)
+
+    reward_beam_r = BooleanProperty(False, allownone=True)
 
 
-class DAQInDevice(DeviceStageInterface, MCDAQDevice):
+class DAQInDeviceSim(DAQInDeviceBase, ButtonPort):
+    pass
+
+
+class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
 
     def __init__(self, **kwargs):
         mapping = {'nose_beam': self.nose_beam_pin,
@@ -211,18 +223,25 @@ class DAQInDevice(DeviceStageInterface, MCDAQDevice):
     SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'channel_number', device_config_name, val_type=int)
 
-    nose_beam = BooleanProperty(False, allownone=True)
-
     nose_beam_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'nose_beam_pin', device_config_name, val_type=int)
-
-    reward_beam_r = BooleanProperty(False, allownone=True)
 
     reward_beam_r_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'reward_beam_r_pin', device_config_name, val_type=int)
 
 
-class DAQOutDevice(DeviceStageInterface, MCDAQDevice):
+class DAQOutDeviceBase(object):
+
+    house_light = BooleanProperty(False, allownone=True)
+
+    stress_light = BooleanProperty(False, allownone=True)
+
+
+class DAQOutDeviceSim(DAQOutDeviceBase, ButtonPort):
+    pass
+
+
+class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
 
     def __init__(self, **kwargs):
         mapping = {'house_light': self.house_light_pin,
@@ -241,12 +260,8 @@ class DAQOutDevice(DeviceStageInterface, MCDAQDevice):
     SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'channel_number', device_config_name, val_type=int)
 
-    house_light = BooleanProperty(False, allownone=True)
-
     house_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'house_light_pin', device_config_name, val_type=int)
-
-    stress_light = BooleanProperty(False, allownone=True)
 
     stress_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'stress_light_pin', device_config_name, val_type=int)
