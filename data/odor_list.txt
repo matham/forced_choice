@@ -1,0 +1,6 @@
+0, NO, 
+1, why not, 0
+4, that one, 1
+5, boxes, 1
+10, apples, 0
+8, the other one, 0
