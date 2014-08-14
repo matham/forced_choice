@@ -46,13 +46,14 @@
 <SwitchIcon@ToggleButtonBehavior+LabeledIcon>
 <PressIcon@ButtonBehavior+LabeledIcon>
 
-<OdorSwitch@SwitchIcon>:
-    disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.odor_dev
+<OdorSwitch>:
+    disabled: app.app_state == 'clear' or app.app_state == 'exception' or not self.odor_dev
+    odor_dev: app.base_stage and app.base_stage.barst.odor_dev
     idx: 0
-    has_odor: app.verify_stage and len(app.verify_stage.odors) > self.idx
-    has_go: bool(self.has_odor and app.verify_stage.odors[self.idx][1])
-    text: ('{} - {}'.format(*app.verify_stage.odors[self.idx]) if self.has_go else '{}'.format(app.verify_stage.odors[self.idx][0])) if self.has_odor else ''
-    on_state: app.set_dev_state(self.state, app.odor_dev, 'p{}'.format(self.idx))
+    has_odor: bool(app.base_stage) and len(app.base_stage.verify.odors) > self.idx
+    has_go: bool(self.has_odor and app.base_stage.verify.odors[self.idx][1])
+    text: ('{} - {}'.format(*app.base_stage.verify.odors[self.idx]) if self.has_go else '{}'.format(app.base_stage.verify.odors[self.idx][0])) if self.has_odor else ''
+    on_state: app.set_dev_state(self.state, self.odor_dev, 'p{}'.format(self.idx))
     halign: 'left'
 
 <OdorDarkSwitch@OdorSwitch>
@@ -63,11 +64,15 @@
             size: self.size
             pos: self.pos
 
-<SimulatedDevices@GridLayout>:
+<SimulatedDevices>:
     cols: 1
     size_hint: None, None
     size: self.minimum_size
     on_parent: app.simulation_devices = self
+    pin_dev: app.base_stage and app.base_stage.barst.pin_dev
+    odor_dev: app.base_stage and app.base_stage.barst.odor_dev
+    daq_in_dev: app.base_stage and app.base_stage.barst.daq_in_dev
+    daq_out_dev: app.base_stage and app.base_stage.barst.daq_out_dev
     GridLayout:
         id: odors1
         size_hint: None, None
@@ -75,28 +80,28 @@
         rows: 1
         spacing: [10, 0]
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p0)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p0)
             idx: 0
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p1)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p1)
             idx: 1
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p2)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p2)
             idx: 2
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p3)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p3)
             idx: 3
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p4)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p4)
             idx: 4
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p5)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p5)
             idx: 5
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p6)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p6)
             idx: 6
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p7)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p7)
             idx: 7
     GridLayout:
         id: odors2
@@ -105,28 +110,28 @@
         rows: 1
         spacing: [10, 0]
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p8)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p8)
             idx: 8
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p9)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p9)
             idx: 9
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p10)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p10)
             idx: 10
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p11)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p11)
             idx: 11
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p12)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p12)
             idx: 12
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p13)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p13)
             idx: 13
         OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p14)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p14)
             idx: 14
         OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), app.odor_dev and app.odor_dev.p15)
+            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p15)
             idx: 15
     GridLayout:
         size_hint: None, None
@@ -137,37 +142,37 @@
             id: pump
             text: 'Pump'
             text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.pin_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), app.pin_dev and app.pin_dev.pump)
-            on_state: app.set_dev_state(self.state, app.pin_dev, 'pump')
+            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.pin_dev
+            state: app.compute_simulated_state(getattr(self, 'state'), root.pin_dev and root.pin_dev.pump)
+            on_state: app.set_dev_state(self.state, root.pin_dev, 'pump')
         SwitchIcon:
             id: house_light
             text: 'House light'
             text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.daq_out_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), app.daq_out_dev and app.daq_out_dev.house_light)
-            on_state: app.set_dev_state(self.state, app.daq_out_dev, 'house_light')
+            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
+            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.house_light)
+            on_state: app.set_dev_state(self.state, root.daq_out_dev, 'house_light')
         SwitchIcon:
             id: stress_light
             text: 'Stress light'
             text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.daq_out_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), app.daq_out_dev and app.daq_out_dev.stress_light)
-            on_state: app.set_dev_state(self.state, app.daq_out_dev, 'stress_light')
+            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
+            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.stress_light)
+            on_state: app.set_dev_state(self.state, root.daq_out_dev, 'stress_light')
         SwitchIcon:
             id: nose_beam
             text: 'Nose beam'
             text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.daq_in_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), app.daq_in_dev and app.daq_in_dev.nose_beam)
-            #on_state: if app.simulate: app.set_dev_state(self.state, app.daq_in_dev, 'nose_beam')
+            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_in_dev
+            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_in_dev and root.daq_in_dev.nose_beam)
+            #on_state: if app.simulate: app.set_dev_state(self.state, root.daq_in_dev, 'nose_beam')
         SwitchIcon:
             id: reward_beam_r
             text: 'R-reward beam'
             text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not app.daq_in_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), app.daq_in_dev and app.daq_in_dev.reward_beam_r)
-            #on_state: if app.simulate: app.set_dev_state(self.state, app.daq_in_dev, 'reward_beam_r')
+            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_in_dev
+            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_in_dev and root.daq_in_dev.reward_beam_r)
+            #on_state: if app.simulate: app.set_dev_state(self.state, root.daq_in_dev, 'reward_beam_r')
         Widget:
             size_hint: None, None
             size: 30, simulate.height
@@ -216,39 +221,39 @@
     ResultsLabel:
         title: 'Trial'
         color_str: 'CC6600'
-        value: '{}'.format(root.outcome.trial)
+        value: '{}'.format(root.trial)
     ResultsLabel:
         title: 'TTNP'
         color_str: 'CC6600'
-        value: '{:.4f}'.format(root.outcome.ttnp) if root.outcome.ttnp is not None else ''
+        value: '{:.4f}'.format(root.ttnp) if root.ttnp is not None else ''
     ResultsLabel:
         title: 'TINP'
         color_str: 'CC6600'
-        value: '{:.4f}'.format(root.outcome.tinp) if root.outcome.tinp is not None else ''
+        value: '{:.4f}'.format(root.tinp) if root.tinp is not None else ''
     ResultsLabel:
         title: 'TTRP'
         color_str: 'CC6600'
-        value: '{:.4f}'.format(root.outcome.ttrp) if root.outcome.ttrp is not None else ''
+        value: '{:.4f}'.format(root.ttrp) if root.ttrp is not None else ''
     ResultsLabel:
         title: 'Go?'
         color_str: 'CC6600'
-        value: ('Yes' if root.outcome.is_go else 'No') if root.outcome.is_go is not None else ''
+        value: ('Yes' if root.is_go else 'No') if root.is_go is not None else ''
     ResultsLabel:
         title: 'Went?'
         color_str: 'CC6600'
-        value: ('Yes' if root.outcome.went else 'No') if root.outcome.went is not None else ''
+        value: ('Yes' if root.went else 'No') if root.went is not None else ''
     ResultsLabel:
         title: 'Outcome'
-        color_str: '33CC33' if root.outcome.passed else 'ff2222'
-        value: ('PASS' if root.outcome.passed else 'FAIL') if root.outcome.passed is not None else ''
+        color_str: '33CC33' if root.passed else 'ff2222'
+        value: ('PASS' if root.passed else ('Incomplete' if root.incomplete else 'FAIL' )) if root.passed is not None else ''
     ResultsLabel:
         title: 'Rewarded?'
         color_str: 'CC6600'
-        value: ('Yes' if root.outcome.rewarded else 'No') if root.outcome.rewarded is not None else ''
+        value: ('Yes' if root.rewarded else 'No') if root.rewarded is not None else ''
     ResultsLabel:
         title: 'ITI'
         color_str: 'CC6600'
-        value: '{:.4f}'.format(root.outcome.iti) if root.outcome.iti is not None else ''
+        value: '{:.4f}'.format(root.iti) if root.iti is not None else ''
 
 <SumulatedAndResults@GridLayout>:
     size_hint: None, None
@@ -271,6 +276,10 @@
             rows: 1
             spacing: [5, 0]
             TrialOutcome
+            TrialOutcome
+            TrialOutcome
+            TrialOutcome
+            TrialOutcome
 
 
 <TrialPrediction>:
@@ -279,7 +288,6 @@
     size: self.texture_size[0] + 16, self.texture_size[1] + 16
     line_height: 1.3
     outcome_color: '33CC33' if self.outcome else 'ff2222'
-    outcome_text: ('PASS' if self.outcome else 'FAIL') if self.outcome is not None else ''
     go_color: '7BE319' if self.go else 'EB0E8F'
     go_text: 'GO' if self.go else 'NOGO'
     color: (.8, .4, 0, 1)
@@ -331,7 +339,10 @@
         markup: True
         color: (.8, .4, 0, 1)
         halign: 'center'
-        text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{}[/color]'.format(app.animal_stage.total_pass, app.animal_stage.total_fail) if app.animal_stage else ''
+        total_pass: app.base_stage.animal_stage.total_pass if app.base_stage else 0
+        total_fail: app.base_stage.animal_stage.total_fail if app.base_stage else 0
+        total_incomplete: app.base_stage.animal_stage.total_incomplete if app.base_stage else 0
+        text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{} ({})[/color]'.format(self.total_pass, self.total_fail, self.total_incomplete)
 
 
 
@@ -401,7 +412,7 @@
             background_normal: 'pause.png'
             icon_size: 48, 48
             on_press:
-                app.root_stage is not None and (app.root_stage.pause() if self.state == 'normal' else app.root_stage.unpause())
+                app.base_stage is not None and (app.base_stage.unpause() if self.state == 'normal' else app.base_stage.pause())
                 app.app_state =  'running' if self.state == 'normal' else 'paused'
             disabled: app.app_state != 'running' and app.app_state != 'paused'
     Widget:
@@ -416,9 +427,7 @@
             background_down: 'stop_0.png'
             background_normal: 'stop_1.png'
             icon_size: 48, 48
-            on_press:
-                app.barst_stage.cancel_exceptions()
-                app.root_stage is not None and app.root_stage.stop()
+            on_press: app.base_stage and app.base_stage.stop()
             disabled: app.app_state != 'running'
     GridLayout:
         cols: 1
@@ -432,7 +441,7 @@
             size_hint_y: None
         Button:
             text: 'Next'
-            on_parent: app.animal_pause_btn = Factory.get('ButtonChannel')(button=self)
+            on_parent: app.next_animal_btn = Factory.get('ButtonChannel')(button=self)
             disabled: app.app_state != 'running'
             animal_id: animal_id.text
     Label:

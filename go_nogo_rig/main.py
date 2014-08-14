@@ -1,3 +1,5 @@
+# TODO: fix restart, check pause
+
 from moa.clock import MoaClockBase
 from kivy.context import register_context
 import kivy
@@ -24,77 +26,85 @@ from go_nogo_rig import device_config_name, exp_config_name
 from os.path import dirname, join, isfile
 import traceback
 import logging
+from moa.logger import Logger
+#Logger.setLevel(logging.TRACE)
 
 
 class GoNoGoApp(MoaApp):
 
     app_state = OptionProperty('clear', options=('clear', 'exception',
                                                  'paused', 'running'))
-    ''' While in exception, you cannot start/stop/pause.
+    ''' The current app state. Can be one of `'clear'`, `'exception'`,
+    `'paused'`, or `'running'`.
+    '''
+
+    exp_status = NumericProperty(0)
+    '''Numerical representation of the current experiment stage.
+
+    Defaults to zero.
+    '''
+
+    exception_value = StringProperty('')
+    '''The text of the current/last exception.
     '''
 
     recovery_path = ConfigParserProperty('', 'App', 'recovery_path',
         device_config_name, val_type=unicode_type)
-
-    config_path = StringProperty('')
-
-    barst_stage = ObjectProperty(None, allownone=True, rebind=True)
-
-    exception_value = StringProperty('')
+    '''The directory path to where the recovery files are saved.
+    '''
 
     go_nogo_configparser = ObjectProperty(None)
+    '''The :class:`ConfigParser` instance used for configuring the devices /
+    system. The config file used with this instance is called `'config.ini'`.
+    '''
 
     experiment_configparser = ObjectProperty(None)
+    '''The :class:`ConfigParser` instance used for configuring the experimental
+    parameters.
+    '''
 
     exp_config_path = ConfigParserProperty('experiment.ini', 'Experiment',
         'exp_config_path', device_config_name, val_type=unicode_type)
+    '''The path to the config file used with :attr:`experiment_configparser`.
+    Defaults to `'experiment.ini'`.
+    '''
 
     simulate = BooleanProperty(False)
+    '''If True, virtual devices should be used for the experiment. Otherwise
+    actual Barst devices will be used.
+    '''
 
-    animal_pause_btn = ObjectProperty(None, rebind=True)
+    err_popup = ObjectProperty(None)
+    '''Contains the error popup object.
+    '''
+
+    popup_anim = None
+    '''Contains the animation used to display that an error exists.
+    '''
+
+    base_stage = ObjectProperty(None, allownone=True, rebind=True)
+    '''The instance of the :class:`RootStage`.
+    '''
+
+    next_animal_btn = ObjectProperty(None, rebind=True)
 
     simulation_devices = ObjectProperty(None)
 
-    server = ObjectProperty(None, allownone=True)
-
-    ftdi_chan = ObjectProperty(None, allownone=True)
-
-    pin_dev = ObjectProperty(None, allownone=True, rebind=True)
-
-    odor_dev = ObjectProperty(None, allownone=True, rebind=True)
-
-    daq_in_dev = ObjectProperty(None, allownone=True, rebind=True)
-
-    daq_out_dev = ObjectProperty(None, allownone=True, rebind=True)
-
-    animal_stage = ObjectProperty(None, rebind=True)
-
-    verify_stage = ObjectProperty(None, rebind=True)
-
-    outcome_container = ObjectProperty(None)
-
-    prediction_container = ObjectProperty(None)
-
-    exp_status = NumericProperty(0)
-
-    err_popup = ObjectProperty(None)
-
-    popup_anim = None
-
     def __init__(self, **kw):
         super(GoNoGoApp, self).__init__(**kw)
-        self.data_directory = join(dirname(dirname(__file__)), 'data')
+        app_path = dirname(dirname(__file__))
+        self.data_directory = join(app_path, 'data')
         resources.resource_add_path(self.data_directory)
-        resources.resource_add_path(join(dirname(dirname(__file__)), 'media'))
+        resources.resource_add_path(join(app_path, 'media'))
 
     def build(self):
-        self.load_kv('display.kv')
+        #self.load_kv('display.kv')
         main_view = MainView()
         self.err_popup = Factory.get('ErrorPopup')()
-        self.popup_anim = Sequence(Animation(t='in_cubic', warn_alpha=1.),
-                                   Animation(t='out_cubic', warn_alpha=0))
+        self.popup_anim = Sequence(Animation(t='in_bounce', warn_alpha=1.),
+                                   Animation(t='out_bounce', warn_alpha=0))
         self.popup_anim.repeat = True
-        inspector.create_inspector(Window, main_view)
+        # inspector.create_inspector(Window, main_view)
         return main_view
 
     def start_stage(self, restart=False):
@@ -102,65 +112,51 @@ class GoNoGoApp(MoaApp):
         try:
             self.barst_stage = None
             self.app_state = 'running'
-            root = self.root_stage
+            root = self.base_stage
+            self.base_stage = None
             if root is not None:
                 def clear_name(stage):
                     stage.name = ''
                     for child in stage.stages:
                         clear_name(child)
                 clear_name(root)
-            root = self.root_stage = RootStage()
+
+            parser = self.go_nogo_configparser
+            config_path = resources.resource_find('config.ini')
+            if parser is None:
+                parser = self.go_nogo_configparser = \
+                    ConfigParser(name=device_config_name)
+            if not config_path:
+                config_path = join(self.data_directory, 'config.ini')
+                with open(config_path, 'w'):
+                    pass
+            parser.read(config_path)
+            parser.write()
+
+            parser = self.experiment_configparser
+            config_path = resources.resource_find(self.exp_config_path)
+            if parser is None:
+                parser = self.experiment_configparser = \
+                    ConfigParser(name=exp_config_name)
+            if not config_path:
+                self.exp_config_path = config_path = join(self.data_directory,
+                                                          'experiment.ini')
+                with open(config_path, 'w'):
+                    pass
+            parser.read(config_path)
+            parser.write()
+
+            root = self.base_stage = RootStage()
         except Exception as e:
-            self.exception_value = '{}\n\n\n{}'.format(e, traceback.format_exc())
+            self.exception_value = '{}\n\n\n{}'.format(e,
+                                                       traceback.format_exc())
             logging.exception(self.exception_value)
             self.app_state = 'clear'
             return
 
-        p = self.go_nogo_configparser
-        if p is not None:
-            p.name = ''
-        self.go_nogo_configparser = ConfigParser(name=device_config_name)
-        config_path = self.config_path
-        if not config_path:
-            self.config_path = config_path = 'config.ini'
-        if isfile(join(self.data_directory, config_path)):
-            self.go_nogo_configparser.read(join(self.data_directory,
-                                                config_path))
-        elif isfile(config_path):
-            self.go_nogo_configparser.read(config_path)
-        else:
-            with open(join(self.data_directory, config_path), 'w'):
-                pass
-            self.go_nogo_configparser.read(config_path)
-        self.go_nogo_configparser.write()
-
-        p = self.experiment_configparser
-        if p is not None:
-            p.name = ''
-        self.experiment_configparser = ConfigParser(name=exp_config_name)
-        config_path = self.exp_config_path
-        if not config_path:
-            self.exp_config_path = config_path = 'experiment.ini'
-        if isfile(join(self.data_directory, config_path)):
-            self.experiment_configparser.read(join(self.data_directory,
-                                                config_path))
-        elif isfile(config_path):
-            self.experiment_configparser.read(config_path)
-        else:
-            with open(join(self.data_directory, config_path), 'w'):
-                pass
-            self.experiment_configparser.read(config_path)
-        self.experiment_configparser.write()
-
-        self.barst_stage = root.stages[0]
         if restart and isfile(self.recovery_path):
-            self.recover_state(self.recovery_path)
+            self.recover_state(self.recovery_path, stage=root)
         root.step_stage()
-
-    def clean_up(self):
-        barst = self.barst_stage
-        if barst is not None:
-            barst.stop_devices(True)
 
     def device_exception(self, exception, *largs):
         if self.app_state == 'exception':
@@ -169,16 +165,11 @@ class GoNoGoApp(MoaApp):
         self.exception_value = '{}\n\n\n{}'.format(*exception)
         logging.exception(self.exception_value)
 
-        root = self.root_stage
-        verify = self.verify_stage
-        if root is not None and verify is not None:
-            if verify.finished:
-                self.recovery_path = self.save_state(prefix='go_nogo_')
-            root.pause()
-        barst = self.barst_stage
-        if barst is not None:
-            barst.request_callback('stop_devices',
-                lambda *l: setattr(self, 'app_state', 'clear'))
+        root = self.base_stage
+        if root is not None and root.block.started and not root.block.finished:
+            self.recovery_path = self.save_state(prefix='go_nogo_', stage=root)
+        if root:
+            root.stop()
 
     def compute_simulated_state(self, sim_state, dev_state):
         if dev_state is None:
@@ -203,10 +194,11 @@ def run_app():
     try:
         app.run()
     except Exception as e:
-        logging.exception('{}\n{}'.format(e, traceback.format_exc()))
-        if app.root_stage is not None:
-            app.recovery_path = app.save_state(prefix='go_nogo_')
-    app.clean_up()
+        app.device_exception((e, traceback.format_exc()))
+
+    root = app.base_stage
+    if root:
+        root.stop()
 
 
 if __name__ == '__main__':

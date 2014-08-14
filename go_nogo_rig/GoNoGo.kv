@@ -5,12 +5,14 @@
 <RootStage>:
     name: 'Root_stage'
     completion_list: self.stages
-    on_finished:
-        if self.finished: barst.request_callback('stop_devices', lambda *l: setattr(app, 'app_state', 'clear'))
-        app.exp_status = 0
+    barst: barst
+    block: block
+    verify: verify
+    animal_stage: animal_stage
     on_started: app.exp_status = 0
     InitBarstStage:
         id: barst
+        root: root
         name: 'barst'
         on_started: if self.started: app.exp_status = 1
     AnimalStage:
@@ -20,11 +22,10 @@
         block: block
         verify: verify
         trial: trial
-        animal_id: app.animal_pause_btn.button.animal_id
-        on_parent: app.animal_stage = self
+        animal_id: app.next_animal_btn.button.animal_id
         DigitalGateStage:
             name: 'rat_wait'
-            device: app.animal_pause_btn
+            device: app.next_animal_btn
             exit_state: True
             on_started: if self.started: app.exp_status = 2
             on_finished: if self.finished: animal_stage.pre_animal()
@@ -37,62 +38,64 @@
             id: block
             repeat: verify.num_blocks
             on_finished: if self.finished: animal_stage.post_block()
-            in_purgotory: not self.started or self.finished
             MoaStage:
                 name: 'trials'
                 id: trial
                 repeat: verify.num_trials[block.count]
                 on_started: if self.started: animal_stage.pre_block()
-                in_purgotory: not self.started or self.finished or block.in_purgotory
                 DigitalGateStage:
                     name: 'house_light_on'
-                    device: app.daq_out_dev
+                    device: barst.daq_out_dev
                     exit_state: True
                     state_attr: 'house_light'
                     on_started:
                         if self.started: animal_stage.pre_trial()
-                        if self.started and app.daq_out_dev: app.daq_out_dev.set_state(high=['house_light'])
-                        if self.started and app.pin_dev: app.pin_dev.set_state(high=['pump'])
+                        if self.started and barst.daq_out_dev: barst.daq_out_dev.set_state(high=['house_light'])
+                        if self.started and barst.pin_dev: barst.pin_dev.set_state(high=['pump'])
                 DigitalGateStage:
                     name: 'nose_poke_wait'
-                    device: app.daq_in_dev
+                    disabled: not animal_stage.wait_for_nose_poke
+                    device: barst.daq_in_dev
                     exit_state: True
                     state_attr: 'nose_beam'
                     on_started: if self.started: app.exp_status = 3
-                    on_finished: if self.finished: animal_stage.outcome.nose_poke_ts = clock()
+                    on_finished: if self.finished: animal_stage.do_nose_poke()
                 DigitalGateStage:
                     name: 'odor_start'
-                    device: app.odor_dev
+                    disabled: not animal_stage.wait_for_nose_poke
+                    device: barst.odor_dev
                     exit_state: True
                     state_attr: str(verify.odor_NO[block.count])
                     on_started:
-                        if self.started and app.odor_dev: app.odor_dev.set_state(high=[verify.odor_NO[block.count], verify.trial_odors[block.count][trial.count]])
+                        if self.started: barst.odor_dev.set_state(high=[verify.odor_NO[block.count], animal_stage.trial_odor])
                 DigitalGateStage:
                     name: 'wait_nose_poke_exit'
-                    device: app.daq_in_dev
+                    disabled: not animal_stage.wait_for_nose_poke
+                    device: barst.daq_in_dev
                     exit_state: False
                     state_attr: 'nose_beam'
                     max_duration: verify.max_nose_poke[block.count]
                     on_finished:
-                        if self.finished and app.odor_dev: app.odor_dev.set_state(low=[verify.odor_NO[block.count], verify.trial_odors[block.count][trial.count]])
-                        if self.finished and not app.daq_in_dev.nose_beam: animal_stage.outcome.nose_poke_exit_ts = clock()
+                        if self.finished: barst.odor_dev.set_state(low=[verify.odor_NO[block.count], animal_stage.trial_odor])
+                        if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
                     on_started: if self.started: app.exp_status = 4
                 DigitalGateStage:
                     name: 'decision_stage'
-                    device: app.daq_in_dev
+                    disabled: animal_stage.incomplete
+                    device: barst.daq_in_dev
                     exit_state: True
                     state_attr: 'reward_beam_r'
                     max_duration: verify.decision_duration[block.count]
                     on_finished: if self.finished: animal_stage.do_decision(self.timed_out)
                     on_started: if self.started: app.exp_status = 5
                 Delay:
-                    disabled: (not verify.reward[block.count][trial.count]) if not trial.in_purgotory else False
+                    disabled: not animal_stage.trial_reward
                     name: 'reward_stage'
                     delay: .1
-                    on_finished: if self.finished and app.pin_dev: app.pin_dev.set_state(low=['pump'])
+                    on_finished: if self.finished and barst.pin_dev: barst.pin_dev.set_state(low=['pump'])
                 Delay:
                     name: 'iti'
-                    delay: verify.iti[block.count][trial.count] if not trial.in_purgotory else 0
-                    on_started: if self.started and app.daq_out_dev: app.daq_out_dev.set_state(low=['house_light'])
+                    delay: animal_stage.trial_iti
+                    on_started: if self.started and barst.daq_out_dev: barst.daq_out_dev.set_state(low=['house_light'])
                     on_started: if self.started: app.exp_status = 6
                     on_finished: if self.finished: animal_stage.post_trial()
