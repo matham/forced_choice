@@ -5,7 +5,9 @@ from kivy.properties import (ObjectProperty, StringProperty, NumericProperty,
                              BooleanProperty)
 from kivy.factory import Factory
 from kivy.lang import Builder
-Builder.load_file('display.kv')
+
+from os import path
+Builder.load_file(path.join(path.dirname(__file__), 'display.kv'))
 
 
 class MainView(BoxLayout):

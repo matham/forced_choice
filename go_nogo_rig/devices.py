@@ -1,9 +1,11 @@
-''' Defines the devices used in this experiment.
+''' Devices used in the experiment.
 '''
 
 
-__all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIPin',
-           'FTDIOdors', 'DAQInDevice', 'DAQOutDevice')
+__all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIPinBase',
+           'FTDIPinSim', 'FTDIPin', 'FTDIOdorsBase', 'FTDIOdorsSim',
+           'FTDIOdors', 'DAQInDeviceBase', 'DAQInDeviceSim', 'DAQInDevice',
+           'DAQOutDeviceBase', 'DAQOutDeviceSim', 'DAQOutDevice')
 
 from functools import partial
 
@@ -28,21 +30,38 @@ from go_nogo_rig import device_config_name
 
 class DeviceStageInterface(object):
     ''' Base class for devices used in this project. It provides the callback
-    on exception functionality.
+    on exception functionality which calls :meth:`GoNoGoApp.device_exception`
+    when an exception occurs.
     '''
 
     exception_callback = None
+    '''The partial function that has been scheduled to be called by the kivy
+    thread when an exception occurs. This function must be unscheduled when
+    stopping, in case there are waiting to be called after it already has been
+    stopped.
+    '''
 
     def handle_exception(self, exception, event):
+        '''The overwritten method called by the devices when they encounter
+        an exception.
+        '''
         callback = self.exception_callback = partial(
             App.get_running_app().device_exception, exception, event)
         Clock.schedule_once(callback)
 
     def start_device(self, started_callback):
+        '''Called from the kivy thread to start this device.
+
+        The device is typically started then from its own thread. The
+        `started_callback` callback is called  from the kivy thread after
+        the device has successfully started.
+        '''
         pass
 
 
 class Server(DeviceStageInterface, ScheduledEventLoop, Device):
+    '''Server device which creates and opens the Barst server.
+    '''
 
     def start_device(self, started_callback):
         # create actual server
@@ -53,19 +72,43 @@ class Server(DeviceStageInterface, ScheduledEventLoop, Device):
         self.request_callback('start_server', started_callback)
 
     def start_server(self):
+        '''Called by the device's thread to start the server.
+        '''
         server = self.target
         server.open_server()
 
     server_path = ConfigParserProperty('', 'Server', 'barst_path',
         device_config_name, val_type=unicode_type)
+    '''The full path to the Barst executable. Could be empty if the server
+    is already started, on remote computer, or if it's in the typical
+    `Program Files` path. If the server is not running, this path is needed
+    to launch the server.
+
+    Defaults to `''`.
+    '''
 
     server_pipe = ConfigParserProperty(b'', 'Server', 'pipe',
                                        device_config_name, val_type=bytes_type)
+    '''The full path to the pipe name (to be) used by the server. Examples are
+    ``\\\\remote_name\pipe\pipe_name``, where ``remote_name`` is the name of
+    the remote computer, or a period (`.`) if the server is local, and
+    ``pipe_name`` is the name of the pipe used to create the server.
+
+    Defaults to `''`.
+    '''
 
 
 class FTDIDevChannel(DeviceStageInterface, ScheduledEventLoop, Device):
+    '''FTDI channel device. This controls internally both the odor
+    and ftdi pin devices.
+    '''
 
     def start_device(self, started_callback, dev_settings, server):
+        '''See :meth:`DeviceStageInterface.start_device`.
+
+        `dev_settings` is the list of device setting to be passed to the
+        Barst ftdi channel. `server` is the Barst server.
+        '''
 
         self.target = FTDIChannel(
             channels=dev_settings, server=server, desc=self.ftdi_desc,
@@ -74,33 +117,54 @@ class FTDIDevChannel(DeviceStageInterface, ScheduledEventLoop, Device):
         self.request_callback('start_channel', started_callback)
 
     def start_channel(self):
+        '''Called by the device's thread to start the channel. If the channel
+        was already open, it closes it first.
+        '''
         self.target.open_channel(alloc=True)
         self.target.close_channel_server()
         return self.target.open_channel(alloc=True)
 
     ftdi_serial = ConfigParserProperty(b'', 'FTDI_chan', 'serial_number',
                                        device_config_name, val_type=bytes_type)
+    '''The serial number if the FTDI hardware board. Can be empty.
+    '''
 
     ftdi_desc = ConfigParserProperty(b'', 'FTDI_chan', 'description_id',
                                      device_config_name, val_type=bytes_type)
+    '''The description of the FTDI hardware board.
+
+    :attr:`ftdi_serial` or :attr:`ftdi_desc` are used to locate the correct
+    board to open. An example is `'Alder Board'` for the Alder board.
+    '''
 
 
 class FTDIPinBase(object):
+    '''Base class for the FTDI pin devices.
+    '''
 
     pump = BooleanProperty(False, allownone=True)
+    '''Controls the connected pump device.
+    '''
 
 
 class FTDIPinSim(FTDIPinBase, ButtonPort):
+    '''Device used when simulating the pin devices.
+    '''
     pass
 
 
 class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
+    '''Device used when using the barst ftdi pin devices.
+    '''
 
     def __init__(self, **kwargs):
         mapping = {'pump': self.pump_pin}
         super(FTDIPin, self).__init__(mapping=mapping, input=False, **kwargs)
 
     def get_settings(self):
+        '''Returns the :class:`PinSettings` instance used to create the Barst
+        FTDI pin device.
+        '''
         return PinSettings(num_bytes=1, bitmask=(1 << self.pump_pin),
                            output=True)
 
@@ -108,6 +172,9 @@ class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
         self.request_callback('activate_pin_device', started_callback)
 
     def activate_pin_device(self):
+        '''Starts the pin device on the server and sets all the pins to low.
+        Called from the internal thread.
+        '''
         pin = self.target
         pin.open_channel()
         pin.set_state(True)
@@ -115,57 +182,90 @@ class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
 
     pump_pin = ConfigParserProperty(0, 'FTDI_pin', 'pump_pin',
                                     device_config_name, val_type=int)
+    '''The pin number of the FTDI channel pin device that controls the pump.
+
+    Defaults to zero.
+    '''
 
 
 class FTDIOdorsBase(object):
+    '''Base class for the FTDI odor devices.
+    '''
 
     p0 = BooleanProperty(False, allownone=True)
+    '''Controls valve 0. '''
 
     p1 = BooleanProperty(False, allownone=True)
+    '''Controls valve 1. '''
 
     p2 = BooleanProperty(False, allownone=True)
+    '''Controls valve 2. '''
 
     p3 = BooleanProperty(False, allownone=True)
+    '''Controls valve 3. '''
 
     p4 = BooleanProperty(False, allownone=True)
+    '''Controls valve 4. '''
 
     p5 = BooleanProperty(False, allownone=True)
+    '''Controls valve 5. '''
 
     p6 = BooleanProperty(False, allownone=True)
+    '''Controls valve 6. '''
 
     p7 = BooleanProperty(False, allownone=True)
+    '''Controls valve 7. '''
 
     p8 = BooleanProperty(False, allownone=True)
+    '''Controls valve 8. '''
 
     p9 = BooleanProperty(False, allownone=True)
+    '''Controls valve 9. '''
 
     p10 = BooleanProperty(False, allownone=True)
+    '''Controls valve 10. '''
 
     p11 = BooleanProperty(False, allownone=True)
+    '''Controls valve 11. '''
 
     p12 = BooleanProperty(False, allownone=True)
+    '''Controls valve 12. '''
 
     p13 = BooleanProperty(False, allownone=True)
+    '''Controls valve 13. '''
 
     p14 = BooleanProperty(False, allownone=True)
+    '''Controls valve 14. '''
 
     p15 = BooleanProperty(False, allownone=True)
+    '''Controls valve 15. '''
 
-    num_boards = ConfigParserProperty(1, 'FTDI_odor', 'num_boards',
+    num_boards = ConfigParserProperty(2, 'FTDI_odor', 'num_boards',
                                       device_config_name, val_type=int)
+    '''The number of valve boards connected to the FTDI device.
+
+    Each board controls 8 valves. Defaults to 2.
+    '''
 
 
 class FTDIOdorsSim(FTDIOdorsBase, ButtonPort):
+    '''Device used when simulating the odor devices.
+    '''
     pass
 
 
 class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
+    '''Device used when using the barst ftdi odor devices.
+    '''
 
     def __init__(self, **kwargs):
         mapping = {'p{}'.format(i): i for i in range(8 * self.num_boards)}
         super(FTDIOdors, self).__init__(mapping=mapping, **kwargs)
 
     def get_settings(self):
+        '''Returns the :class:`SerializerSettings` instance used to create the
+        Barst FTDI odor device.
+        '''
         return SerializerSettings(clock_bit=self.clock_bit,
             data_bit=self.data_bit, latch_bit=self.latch_bit,
             num_boards=self.num_boards, output=True)
@@ -174,6 +274,9 @@ class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
         self.request_callback('activate_odor_device', started_callback)
 
     def activate_odor_device(self):
+        '''Starts the odor device on the server and sets all the valves to low.
+        Called from the internal thread.
+        '''
         odors = self.target
         odors.open_channel()
         odors.set_state(True)
@@ -181,26 +284,48 @@ class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
 
     clock_bit = ConfigParserProperty(0, 'FTDI_odor', 'clock_bit',
                                      device_config_name, val_type=int)
+    '''The pin on the FTDI board to which the valve's clock bit is connected.
+
+    Defaults to zero.
+    '''
 
     data_bit = ConfigParserProperty(0, 'FTDI_odor', 'data_bit',
                                     device_config_name, val_type=int)
+    '''The pin on the FTDI board to which the valve's data bit is connected.
+
+    Defaults to zero.
+    '''
 
     latch_bit = ConfigParserProperty(0, 'FTDI_odor', 'latch_bit',
                                      device_config_name, val_type=int)
+    '''The pin on the FTDI board to which the valve's latch bit is connected.
+
+    Defaults to zero.
+    '''
 
 
 class DAQInDeviceBase(object):
+    '''Base class for the Switch & Sense 8/8 input ports.
+    '''
 
     nose_beam = BooleanProperty(False, allownone=True)
+    '''Reads / controls the nose port photobeam.
+    '''
 
     reward_beam_r = BooleanProperty(False, allownone=True)
+    '''Reads / controls the reward port photobeam.
+    '''
 
 
 class DAQInDeviceSim(DAQInDeviceBase, ButtonPort):
+    '''Device used when simulating the Switch & Sense 8/8 input device.
+    '''
     pass
 
 
 class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
+    '''Device used when using the barst Switch & Sense 8/8 output devices.
+    '''
 
     def __init__(self, **kwargs):
         mapping = {'nose_beam': self.nose_beam_pin,
@@ -209,12 +334,19 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
                                           **kwargs)
 
     def start_device(self, started_callback, server):
+        '''See :meth:`DeviceStageInterface.start_device`.
+
+        `server` is the Barst server.
+        '''
 
         self.target = MCDAQChannel(chan=self.SAS_chan, server=server)
 
         self.request_callback('start_channel', started_callback)
 
     def start_channel(self):
+        '''Starts the device on the server.
+        Called from the internal thread.
+        '''
         target = self.target
         target.open_channel()
         target.close_channel_server()
@@ -222,26 +354,51 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
 
     SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'channel_number', device_config_name, val_type=int)
+    '''`channel_number`, the channel number of the Switch & Sense 8/8 as
+    configured in InstaCal.
+
+    Defaults to zero.
+    '''
 
     nose_beam_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'nose_beam_pin', device_config_name, val_type=int)
+    '''The port in the Switch & Sense to which the nose port photobeam is
+    connected to.
+
+    Defaults to zero.
+    '''
 
     reward_beam_r_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'reward_beam_r_pin', device_config_name, val_type=int)
+    '''The port in the Switch & Sense to which the reward port photobeam is
+    connected to.
+
+    Defaults to zero.
+    '''
 
 
 class DAQOutDeviceBase(object):
+    '''Base class for the Switch & Sense 8/8 output ports.
+    '''
 
     house_light = BooleanProperty(False, allownone=True)
+    '''Controls the house light.
+    '''
 
     stress_light = BooleanProperty(False, allownone=True)
+    '''Controls the stress light.
+    '''
 
 
 class DAQOutDeviceSim(DAQOutDeviceBase, ButtonPort):
+    '''Device used when simulating the Switch & Sense 8/8 output device.
+    '''
     pass
 
 
 class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
+    '''Device used when using the barst Switch & Sense 8/8 output devices.
+    '''
 
     def __init__(self, **kwargs):
         mapping = {'house_light': self.house_light_pin,
@@ -249,19 +406,40 @@ class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
         super(DAQOutDevice, self).__init__(mapping=mapping, **kwargs)
 
     def start_device(self, started_callback, server):
+        '''See :meth:`DeviceStageInterface.start_device`.
+
+        `server` is the Barst server.
+        '''
 
         self.target = MCDAQChannel(chan=self.SAS_chan, server=server)
 
         self.request_callback('start_channel', started_callback)
 
     def start_channel(self):
+        '''Starts the device on the server and sets all the channels to low.
+        Called from the internal thread.
+        '''
         self.target.open_channel()
+        self.target.write(mask=0xFF, value=0)
 
     SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'channel_number', device_config_name, val_type=int)
+    '''`channel_number`, the channel number of the Switch & Sense 8/8 as
+    configured in InstaCal.
+    '''
 
     house_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'house_light_pin', device_config_name, val_type=int)
+    '''The port in the Switch & Sense to which the house light is
+    connected to.
+
+    Defaults to zero.
+    '''
 
     stress_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
         'stress_light_pin', device_config_name, val_type=int)
+    '''The port in the Switch & Sense to which the stress light is connected
+    to.
+
+    Defaults to zero.
+    '''

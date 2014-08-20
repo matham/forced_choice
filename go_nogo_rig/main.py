@@ -1,13 +1,20 @@
-# TODO: fix restart, check pause
+'''The main module that starts the experiment.
+'''
 
+__all__ = ('GoNoGoApp', 'run_app')
+
+# TODO: fix restart
+
+import os
 from moa.clock import MoaClockBase
 from kivy.context import register_context
 import kivy
-kivy.clock.Clock = register_context('Clock', MoaClockBase)
+if not os.environ.get('SPHINX_DOC_INCLUDE', None):
+    kivy.clock.Clock = register_context('Clock', MoaClockBase)
+    from kivy.config import Config
+    Config.set('kivy', 'exit_on_escape', 0)
+    Config.set('kivy', 'multitouch_on_demand', 1)
 
-from kivy.config import Config
-Config.set('kivy', 'exit_on_escape', 0)
-Config.set('kivy', 'multitouch_on_demand', 1)
 from kivy.properties import (ObjectProperty, OptionProperty,
     ConfigParserProperty, StringProperty, BooleanProperty, NumericProperty)
 from kivy import resources
@@ -31,15 +38,28 @@ from moa.logger import Logger
 
 
 class GoNoGoApp(MoaApp):
+    '''The app which runs the experiment.
+    '''
 
     app_state = OptionProperty('clear', options=('clear', 'exception',
                                                  'paused', 'running'))
     ''' The current app state. Can be one of `'clear'`, `'exception'`,
-    `'paused'`, or `'running'`.
+    `'paused'`, or `'running'`. The state controls which buttons are active.
     '''
 
     exp_status = NumericProperty(0)
     '''Numerical representation of the current experiment stage.
+
+    Number   Meaning
+    =======  ============
+    0        Experiment is off
+    1        Barst (devices) are being initialized
+    2        Waiting to start next animal
+    3        Waiting for the animal to do a nose poke
+    4        Waiting for the animal to exit the nose poke
+    5        Waiting for the animal to make a decision
+    6        ITI started
+    =======  ============
 
     Defaults to zero.
     '''
@@ -51,27 +71,39 @@ class GoNoGoApp(MoaApp):
     recovery_path = ConfigParserProperty('', 'App', 'recovery_path',
         device_config_name, val_type=unicode_type)
     '''The directory path to where the recovery files are saved.
+
+    Defaults to `''`
+    '''
+
+    recovery_file = ConfigParserProperty('', 'App', 'recovery_file',
+        device_config_name, val_type=unicode_type)
+    '''The last recovery file written. Used to recover the experiment.
+
+    Defaults to `''`
     '''
 
     go_nogo_configparser = ObjectProperty(None)
     '''The :class:`ConfigParser` instance used for configuring the devices /
-    system. The config file used with this instance is called `'config.ini'`.
+    system. The config file used with this instance is `'config.ini'`.
     '''
 
     experiment_configparser = ObjectProperty(None)
     '''The :class:`ConfigParser` instance used for configuring the experimental
-    parameters.
+    parameters. Changing the file will only have an effect on the parameters
+    if changing while the experiment is stopped.
     '''
 
     exp_config_path = ConfigParserProperty('experiment.ini', 'Experiment',
         'exp_config_path', device_config_name, val_type=unicode_type)
     '''The path to the config file used with :attr:`experiment_configparser`.
-    Defaults to `'experiment.ini'`.
+
+    Defaults to `'experiment.ini'`. This ini file contains the configuration
+    for the experiment, e.g. ITI times etc.
     '''
 
     simulate = BooleanProperty(False)
-    '''If True, virtual devices should be used for the experiment. Otherwise
-    actual Barst devices will be used.
+    '''If True, virtual devices will be used for the experiment. Otherwise
+    actual Barst devices will be used. Useful for testing.
     '''
 
     err_popup = ObjectProperty(None)
@@ -83,12 +115,18 @@ class GoNoGoApp(MoaApp):
     '''
 
     base_stage = ObjectProperty(None, allownone=True, rebind=True)
-    '''The instance of the :class:`RootStage`.
+    '''The instance of the :class:`RootStage`. This is the experiment's
+    root stage.
     '''
 
     next_animal_btn = ObjectProperty(None, rebind=True)
+    '''The button that is pressed when the we should do the next animal.
+    '''
 
     simulation_devices = ObjectProperty(None)
+    '''The base widget that contains all the buttons that simulate / display
+    the device state.
+    '''
 
     def __init__(self, **kw):
         super(GoNoGoApp, self).__init__(**kw)
@@ -98,7 +136,6 @@ class GoNoGoApp(MoaApp):
         resources.resource_add_path(join(app_path, 'media'))
 
     def build(self):
-        #self.load_kv('display.kv')
         main_view = MainView()
         self.err_popup = Factory.get('ErrorPopup')()
         self.popup_anim = Sequence(Animation(t='in_bounce', warn_alpha=1.),
@@ -108,6 +145,11 @@ class GoNoGoApp(MoaApp):
         return main_view
 
     def start_stage(self, restart=False):
+        '''Called to start the experiment. If restart is True, it'll try to
+        recover the experiment using :attr:`recovery_file`.
+
+        It creates and starts the :class:`RootStage`.
+        '''
         self.exception_value = ''
         try:
             self.barst_stage = None
@@ -154,11 +196,22 @@ class GoNoGoApp(MoaApp):
             self.app_state = 'clear'
             return
 
-        if restart and isfile(self.recovery_path):
-            self.recover_state(self.recovery_path, stage=root)
+        if restart and isfile(self.recovery_file):
+            self.recover_state(self.recovery_file, stage=root)
         root.step_stage()
 
     def device_exception(self, exception, *largs):
+        '''Called whenever an exception is caught in the experiment or devices.
+
+        It stops the experiment and notifies of the exception. It also saves
+        the current state for recovery.
+
+        :parameters:
+
+            `exception`: 2-tuple
+                The first element is the caught exception, the second element
+                is the traceback.
+        '''
         if self.app_state == 'exception':
             return
         self.app_state = 'exception'
@@ -167,11 +220,19 @@ class GoNoGoApp(MoaApp):
 
         root = self.base_stage
         if root is not None and root.block.started and not root.block.finished:
-            self.recovery_path = self.save_state(prefix='go_nogo_', stage=root)
+            self.recovery_file = self.save_state(prefix='go_nogo_', stage=root,
+                                                 dir=self.recovery_path)
         if root:
             root.stop()
 
     def compute_simulated_state(self, sim_state, dev_state):
+        '''A convenience method which takes the state of the simulated device
+        (buttons) and the state of the actual device and returns if the
+        simulated device should be `'down'` or `'normal'`.
+
+        It is used to set the button state to match the actual device state,
+        if not simulating.
+        '''
         if dev_state is None:
             return sim_state
         if (sim_state == 'down') == dev_state:
@@ -179,6 +240,10 @@ class GoNoGoApp(MoaApp):
         return 'down' if dev_state else 'normal'
 
     def set_dev_state(self, sim_state, dev, attr):
+        '''A convenience method which takes the state of the simulated device
+        (buttons) and sets the state of the actual device to match it when not
+        simulating.
+        '''
         if dev is not None:
             high = []
             low = []
@@ -190,6 +255,9 @@ class GoNoGoApp(MoaApp):
 
 
 def run_app():
+    '''Entrance method used to start the GUI. It creates and runs
+    :class:`GoNoGoApp`.
+    '''
     app = GoNoGoApp()
     try:
         app.run()

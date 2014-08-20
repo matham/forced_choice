@@ -28,7 +28,6 @@
             device: app.next_animal_btn
             exit_state: True
             on_started: if self.started: app.exp_status = 2
-            on_finished: if self.finished: animal_stage.pre_animal()
         VerifyConfigStage:
             id: verify
             on_parent: app.verify_stage = self
@@ -37,7 +36,6 @@
             name: 'block'
             id: block
             repeat: verify.num_blocks
-            on_finished: if self.finished: animal_stage.post_block()
             MoaStage:
                 name: 'trials'
                 id: trial
@@ -67,7 +65,7 @@
                     exit_state: True
                     state_attr: str(verify.odor_NO[block.count])
                     on_started:
-                        if self.started: barst.odor_dev.set_state(high=[verify.odor_NO[block.count], animal_stage.trial_odor])
+                        if self.started: barst.odor_dev.set_state(high=[verify.odor_NO[block.count], animal_stage.odor])
                 DigitalGateStage:
                     name: 'wait_nose_poke_exit'
                     disabled: not animal_stage.wait_for_nose_poke
@@ -76,7 +74,7 @@
                     state_attr: 'nose_beam'
                     max_duration: verify.max_nose_poke[block.count]
                     on_finished:
-                        if self.finished: barst.odor_dev.set_state(low=[verify.odor_NO[block.count], animal_stage.trial_odor])
+                        if self.finished: barst.odor_dev.set_state(low=[verify.odor_NO[block.count], animal_stage.odor])
                         if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
                     on_started: if self.started: app.exp_status = 4
                 DigitalGateStage:
@@ -89,13 +87,13 @@
                     on_finished: if self.finished: animal_stage.do_decision(self.timed_out)
                     on_started: if self.started: app.exp_status = 5
                 Delay:
-                    disabled: not animal_stage.trial_reward
+                    disabled: not animal_stage.reward
                     name: 'reward_stage'
                     delay: .1
                     on_finished: if self.finished and barst.pin_dev: barst.pin_dev.set_state(low=['pump'])
                 Delay:
                     name: 'iti'
-                    delay: animal_stage.trial_iti
+                    delay: animal_stage.iti
                     on_started: if self.started and barst.daq_out_dev: barst.daq_out_dev.set_state(low=['house_light'])
                     on_started: if self.started: app.exp_status = 6
                     on_finished: if self.finished: animal_stage.post_trial()
