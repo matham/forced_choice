@@ -220,8 +220,8 @@ class ExperimentApp(MoaApp):
 
         root = self.base_stage
         if root is not None and root.block.started and not root.block.finished:
-            self.recovery_file = self.save_state(prefix='go_nogo_', stage=root,
-                                                 dir=self.recovery_path)
+            self.recovery_file = self.save_state(prefix='experiment_',
+                stage=root, dir=self.recovery_path)
         if root:
             root.stop()
 
