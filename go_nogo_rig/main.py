@@ -82,7 +82,7 @@ class ExperimentApp(MoaApp):
     Defaults to `''`
     '''
 
-    go_nogo_configparser = ObjectProperty(None)
+    dev_configparser = ObjectProperty(None)
     '''The :class:`ConfigParser` instance used for configuring the devices /
     system. The config file used with this instance is `'config.ini'`.
     '''
@@ -163,10 +163,10 @@ class ExperimentApp(MoaApp):
                         clear_name(child)
                 clear_name(root)
 
-            parser = self.go_nogo_configparser
+            parser = self.dev_configparser
             config_path = resources.resource_find('config.ini')
             if parser is None:
-                parser = self.go_nogo_configparser = \
+                parser = self.dev_configparser = \
                     ConfigParser(name=device_config_name)
             if not config_path:
                 config_path = join(self.data_directory, 'config.ini')
