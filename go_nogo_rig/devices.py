@@ -30,7 +30,7 @@ from go_nogo_rig import device_config_name
 
 class DeviceStageInterface(object):
     ''' Base class for devices used in this project. It provides the callback
-    on exception functionality which calls :meth:`GoNoGoApp.device_exception`
+    on exception functionality which calls :meth:`ExperimentApp.device_exception`
     when an exception occurs.
     '''
 

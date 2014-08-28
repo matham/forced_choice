@@ -54,7 +54,7 @@ class RootStage(MoaStage):
 
 class InitBarstStage(MoaStage, ScheduledEventLoop):
     '''The stage that creates and initializes all the Barst devices (or
-    simulation devices if :attr:`GoNoGoApp.simulate`).
+    simulation devices if :attr:`ExperimentApp.simulate`).
     '''
 
     # the last device that was successfully created
@@ -67,7 +67,7 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     simulate = BooleanProperty(False)
     '''If True, virtual devices should be used for the experiment. Otherwise
     actual Barst devices will be used. This is set to the same value as
-    :attr:`GoNoGoApp.simulate`.
+    :attr:`ExperimentApp.simulate`.
     '''
 
     server = ObjectProperty(None, allownone=True)
@@ -282,7 +282,7 @@ class VerifyConfigStage(MoaStage):
     The stage verifies that all the experimental parameters are correct and
     computes all the values, e.g. odors needed for the trials.
 
-    If the values are incorrect, it calls :meth:`GoNoGoApp.device_exception`
+    If the values are incorrect, it calls :meth:`ExperimentApp.device_exception`
     with the exception.
     '''
 

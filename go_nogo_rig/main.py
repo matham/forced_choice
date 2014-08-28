@@ -1,7 +1,7 @@
 '''The main module that starts the experiment.
 '''
 
-__all__ = ('GoNoGoApp', 'run_app')
+__all__ = ('ExperimentApp', 'run_app')
 
 # TODO: fix restart
 
@@ -37,7 +37,7 @@ from moa.logger import Logger
 #Logger.setLevel(logging.TRACE)
 
 
-class GoNoGoApp(MoaApp):
+class ExperimentApp(MoaApp):
     '''The app which runs the experiment.
     '''
 
@@ -129,7 +129,7 @@ class GoNoGoApp(MoaApp):
     '''
 
     def __init__(self, **kw):
-        super(GoNoGoApp, self).__init__(**kw)
+        super(ExperimentApp, self).__init__(**kw)
         app_path = dirname(dirname(__file__))
         self.data_directory = join(app_path, 'data')
         resources.resource_add_path(self.data_directory)
@@ -256,9 +256,9 @@ class GoNoGoApp(MoaApp):
 
 def run_app():
     '''Entrance method used to start the GUI. It creates and runs
-    :class:`GoNoGoApp`.
+    :class:`ExperimentApp`.
     '''
-    app = GoNoGoApp()
+    app = ExperimentApp()
     try:
         app.run()
     except Exception as e:
