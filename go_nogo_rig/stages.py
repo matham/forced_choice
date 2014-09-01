@@ -46,7 +46,10 @@ class RootStage(MoaStage):
                 app = App.get_running_app()
                 app.app_state = 'clear'
                 app.exp_status = 0
-            self.barst.request_callback('stop_devices', clear_app)
+            barst = self.barst
+            barst.clear_events()
+            barst.start_thread()
+            barst.request_callback('stop_devices', clear_app)
             fd = self.animal_stage._fd
             if fd is not None:
                 fd.close()
@@ -57,12 +60,10 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     simulation devices if :attr:`ExperimentApp.simulate`).
     '''
 
-    # the last device that was successfully created
-    _current_step = ''
-    # if a device is currently being initialized by another thread.
-    _is_running = False
+    # if a device is currently being initialized by the secondary thread.
+    _finished_init = False
     # if while a device is initialized, stage should stop when finished.
-    _should_stop = False
+    _should_stop = None
 
     simulate = BooleanProperty(False)
     '''If True, virtual devices should be used for the experiment. Otherwise
@@ -98,6 +99,13 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     instance when :attr:`simulate`.
     '''
 
+    exception_callback = None
+    '''The partial function that has been scheduled to be called by the kivy
+    thread when an exception occurs. This function must be unscheduled when
+    stopping, in case there are waiting to be called after it already has been
+    stopped.
+    '''
+
     def __init__(self, **kw):
         super(InitBarstStage, self).__init__(**kw)
         self.simulate = App.get_running_app().simulate
@@ -109,24 +117,23 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         return super(InitBarstStage, self).recover_state(state)
 
     def clear(self, *largs, **kwargs):
-        self._is_running = False
-        self._current_step = ''
-        self._should_stop = False
+        self._finished_init = False
+        self._should_stop = None
         return super(InitBarstStage, self).clear(*largs, **kwargs)
 
     def unpause(self, *largs, **kwargs):
         # if simulating, we cannot be in pause state
         if super(InitBarstStage, self).unpause(*largs, **kwargs):
-            if not self._is_running and self._current_step:
+            if self._finished_init:
                 # when unpausing, just continue where we were
-                self.create_barst_devices(self._current_step)
+                self.finish_start_devices()
             return True
         return False
 
     def stop(self, *largs, **kwargs):
-        # if the stage is done pass it on, otherwise stop it later on callback
-        if self._current_step:
-            self._should_stop = True
+        if self.started and not self._finished_init and not self.finished:
+            self._should_stop = largs, kwargs
+            return False
         return super(InitBarstStage, self).stop(*largs, **kwargs)
 
     def step_stage(self, *largs, **kwargs):
@@ -137,12 +144,15 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         if self.simulate:
             self.create_sim_devices()
             self.step_stage()
-            return
+            return True
 
-        # start with the server
-        server = self.server = Server()
-        self._is_running = True
-        server.start_device(partial(self.create_barst_devices, 'server'))
+        try:
+            self.create_devices()
+            self.request_callback('start_devices',
+                                  callback=self.finish_start_devices)
+        except Exception as e:
+            App.get_running_app().device_exception((e, traceback.format_exc()))
+
         return True
 
     def create_sim_devices(self):
@@ -167,52 +177,53 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         self.daq_in_dev.activate(self)
         self.daq_out_dev.activate(self)
 
-    def create_barst_devices(self, state, *largs):
-        '''Creates the Barst devices. This is called multiple times, each time
-        ``state`` is the last device successfully initialized. The next device
-        is then created and initialized.
-        '''
-        self._current_step = state
-        if self._should_stop:
+    def create_devices(self):
+        server = self.server = Server()
+        server.create_device()
+        barst_server = server.target
+        ftdi = self.ftdi_chan = FTDIDevChannel()
+        pin = self.pin_dev = FTDIPin()
+        odors = self.odor_dev = FTDIOdors()
+        ftdi.create_device([odors.get_settings(), pin.get_settings()],
+                           barst_server)
+        daqin = self.daq_in_dev = DAQInDevice()
+        daqout = self.daq_out_dev = DAQOutDevice()
+        daqin.create_device(barst_server)
+        daqout.create_device(barst_server)
+
+    def start_devices(self):
+        self.server.start_channel()
+        x = self.ftdi_chan.start_channel()
+        print x
+        self.odor_dev.target, self.pin_dev.target = x
+        print self.odor_dev.target, self.pin_dev.target
+        self.odor_dev.start_channel()
+        self.pin_dev.start_channel()
+        self.daq_in_dev.start_channel()
+        self.daq_out_dev.start_channel()
+
+    def finish_start_devices(self, *largs):
+        self._finished_init = True
+        should_stop = self._should_stop
+        if should_stop is not None:
+            super(InitBarstStage, self).stop(*should_stop[0], **should_stop[1])
             return
         if self.paused:
-            self._is_running = False
             return
 
-        try:
-            if state == 'server':
-                chan = self.ftdi_chan = FTDIDevChannel()
-                ftdi_pin = self.pin_dev = FTDIPin()
-                odors = self.odor_dev = FTDIOdors()
-                chan.start_device(partial(self.create_barst_devices, 'ftdi'),
-                    [odors.get_settings(), ftdi_pin.get_settings()],
-                    self.server.target)
-            elif state == 'ftdi':
-                self.odor_dev.target, self.pin_dev.target = largs[0]
-                self.odor_dev.start_device(partial(self.create_barst_devices,
-                                                   'odors'))
-            elif state == 'odors':
-                self.pin_dev.start_device(partial(self.create_barst_devices,
-                                                 'ftdi_pin'))
-            elif state == 'ftdi_pin':
-                daq = self.daq_in_dev = DAQInDevice()
-                daq.start_device(partial(self.create_barst_devices, 'daq_in'),
-                                 self.server.target)
-            elif state == 'daq_in':
-                daq = self.daq_out_dev = DAQOutDevice()
-                daq.start_device(partial(self.create_barst_devices, 'daq_out'),
-                                 self.server.target)
-            elif state == 'daq_out':
-                self.pin_dev.activate(self)
-                self.odor_dev.activate(self)
-                self.daq_in_dev.activate(self)
-                self.daq_out_dev.activate(self)
-                self._current_step = ''
-                self.step_stage()
-            else:
-                assert False
-        except Exception as e:
-            App.get_running_app().device_exception((e, traceback.format_exc()))
+        self.pin_dev.activate(self)
+        self.odor_dev.activate(self)
+        self.daq_in_dev.activate(self)
+        self.daq_out_dev.activate(self)
+        self.step_stage()
+
+    def handle_exception(self, exception, event):
+        '''The overwritten method called by the devices when they encounter
+        an exception.
+        '''
+        callback = self.exception_callback = partial(
+            App.get_running_app().device_exception, exception, event)
+        Clock.schedule_once(callback)
 
     def stop_devices(self):
         '''Called from :class:`InitBarstStage` internal thread. It stops
@@ -233,6 +244,7 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
             return
         unschedule = Clock.unschedule
 
+        unschedule(self.exception_callback)
         for dev in (self.server, self.ftdi_chan, pin_dev, odor_dev, daq_in_dev,
                     daq_out_dev):
             if dev is not None:

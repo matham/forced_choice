@@ -49,12 +49,17 @@ class DeviceStageInterface(object):
             App.get_running_app().device_exception, exception, event)
         Clock.schedule_once(callback)
 
-    def start_device(self, started_callback):
-        '''Called from the kivy thread to start this device.
+    def create_device(self):
+        '''Called from the kivy thread to create the internal target of this
+        device.
+        '''
+        pass
 
-        The device is typically started then from its own thread. The
-        `started_callback` callback is called  from the kivy thread after
-        the device has successfully started.
+    def start_channel(self):
+        '''Called from secondary thread to initialize the target device. This
+        is typically called after :meth:`create_device` is called.
+        This method typically opens e.g. the Barst channels on the server and
+        sets them to their initial values.
         '''
         pass
 
@@ -63,17 +68,13 @@ class Server(DeviceStageInterface, ScheduledEventLoop, Device):
     '''Server device which creates and opens the Barst server.
     '''
 
-    def start_device(self, started_callback):
+    def create_device(self):
         # create actual server
         self.target = BarstServer(
             barst_path=(self.server_path if self.server_path else None),
             pipe_name=self.server_pipe)
 
-        self.request_callback('start_server', started_callback)
-
-    def start_server(self):
-        '''Called by the device's thread to start the server.
-        '''
+    def start_channel(self):
         server = self.target
         server.open_server()
 
@@ -103,23 +104,17 @@ class FTDIDevChannel(DeviceStageInterface, ScheduledEventLoop, Device):
     and ftdi pin devices.
     '''
 
-    def start_device(self, started_callback, dev_settings, server):
-        '''See :meth:`DeviceStageInterface.start_device`.
+    def create_device(self, dev_settings, server):
+        '''See :meth:`DeviceStageInterface.create_device`.
 
         `dev_settings` is the list of device setting to be passed to the
         Barst ftdi channel. `server` is the Barst server.
         '''
-
         self.target = FTDIChannel(
             channels=dev_settings, server=server, desc=self.ftdi_desc,
             serial=self.ftdi_serial)
 
-        self.request_callback('start_channel', started_callback)
-
     def start_channel(self):
-        '''Called by the device's thread to start the channel. If the channel
-        was already open, it closes it first.
-        '''
         self.target.open_channel(alloc=True)
         self.target.close_channel_server()
         return self.target.open_channel(alloc=True)
@@ -168,13 +163,7 @@ class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
         return PinSettings(num_bytes=1, bitmask=(1 << self.pump_pin),
                            output=True)
 
-    def start_device(self, started_callback):
-        self.request_callback('activate_pin_device', started_callback)
-
-    def activate_pin_device(self):
-        '''Starts the pin device on the server and sets all the pins to low.
-        Called from the internal thread.
-        '''
+    def start_channel(self):
         pin = self.target
         pin.open_channel()
         pin.set_state(True)
@@ -270,13 +259,7 @@ class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
             data_bit=self.data_bit, latch_bit=self.latch_bit,
             num_boards=self.num_boards, output=True)
 
-    def start_device(self, started_callback):
-        self.request_callback('activate_odor_device', started_callback)
-
-    def activate_odor_device(self):
-        '''Starts the odor device on the server and sets all the valves to low.
-        Called from the internal thread.
-        '''
+    def start_channel(self):
         odors = self.target
         odors.open_channel()
         odors.set_state(True)
@@ -333,20 +316,15 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
         super(DAQInDevice, self).__init__(mapping=mapping, input=True,
                                           **kwargs)
 
-    def start_device(self, started_callback, server):
-        '''See :meth:`DeviceStageInterface.start_device`.
+    def create_device(self, server):
+        '''See :meth:`DeviceStageInterface.create_device`.
 
         `server` is the Barst server.
         '''
 
         self.target = MCDAQChannel(chan=self.SAS_chan, server=server)
 
-        self.request_callback('start_channel', started_callback)
-
     def start_channel(self):
-        '''Starts the device on the server.
-        Called from the internal thread.
-        '''
         target = self.target
         target.open_channel()
         target.close_channel_server()
@@ -405,20 +383,15 @@ class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
                    'stress_light': self.stress_light_pin}
         super(DAQOutDevice, self).__init__(mapping=mapping, **kwargs)
 
-    def start_device(self, started_callback, server):
-        '''See :meth:`DeviceStageInterface.start_device`.
+    def create_device(self, server):
+        '''See :meth:`DeviceStageInterface.create_device`.
 
         `server` is the Barst server.
         '''
 
         self.target = MCDAQChannel(chan=self.SAS_chan, server=server)
 
-        self.request_callback('start_channel', started_callback)
-
     def start_channel(self):
-        '''Starts the device on the server and sets all the channels to low.
-        Called from the internal thread.
-        '''
         self.target.open_channel()
         self.target.write(mask=0xFF, value=0)
 
