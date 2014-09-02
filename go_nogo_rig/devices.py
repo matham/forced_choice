@@ -49,6 +49,13 @@ class DeviceStageInterface(object):
             App.get_running_app().device_exception, exception, event)
         Clock.schedule_once(callback)
 
+    def cancel_exception(self):
+        '''Called to cancel the potentially scheduled exception, scheduled with
+        :meth:`handle_exception`.
+        '''
+        Clock.unshcedule(self.exception_callback)
+        self.exception_callback = None
+
     def create_device(self):
         '''Called from the kivy thread to create the internal target of this
         device.
