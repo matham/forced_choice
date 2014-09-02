@@ -2,10 +2,11 @@
 '''
 
 
-__all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIPinBase',
-           'FTDIPinSim', 'FTDIPin', 'FTDIOdorsBase', 'FTDIOdorsSim',
-           'FTDIOdors', 'DAQInDeviceBase', 'DAQInDeviceSim', 'DAQInDevice',
-           'DAQOutDeviceBase', 'DAQOutDeviceSim', 'DAQOutDevice')
+__all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIOdorsBase',
+           'FTDIOdorsSim', 'FTDIOdors', 'DAQInDeviceBase', 'DAQInDeviceSim',
+           'DAQInDevice', 'DAQOutDeviceBase', 'DAQOutDeviceSim',
+           'DAQOutDevice', 'MassFlowControllerBase', 'MassFlowControllerSim',
+           'MFCSafe', 'MassFlowController')
 
 from functools import partial
 
@@ -155,13 +156,12 @@ class MassFlowControllerBase(EventDispatcher):
 
 class MassFlowControllerSim(MassFlowControllerBase):
 
-    def __init__(self, air, odor_a, odor_b):
-        self.air = NumericPropertyChannel(channel_widget=air[0],
-                                          prop_name=air[1])
-        self.odor_a = NumericPropertyChannel(channel_widget=odor_a[0],
-                                             prop_name=odor_a[1])
-        self.odor_b = NumericPropertyChannel(channel_widget=odor_b[0],
-                                             prop_name=odor_b[1])
+    def __init__(self, widget, air, odor_a, odor_b):
+        self.air = NumericPropertyChannel(channel_widget=widget, prop_name=air)
+        self.odor_a = NumericPropertyChannel(channel_widget=widget,
+                                             prop_name=odor_a)
+        self.odor_b = NumericPropertyChannel(channel_widget=widget,
+                                             prop_name=odor_b)
 
 
 class MFCSafe(DeviceStageInterface, MFC):
@@ -179,7 +179,9 @@ class MassFlowController(MassFlowControllerBase):
                               mfc_id=self.air_id)
 
     def start_channel(self):
-        pass
+        self.air.init_mfc()
+        self.odor_a.init_mfc()
+        self.odor_b.init_mfc()
 
     air_id = ConfigParserProperty(0, 'MFC', 'air_id', device_config_name,
                                   val_type=int)
