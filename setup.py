@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
-import go_nogo_rig
+import go_nogo
 
 
 setup(
     name='Go-NoGo',
-    version=go_nogo_rig.__version__,
+    version=go_nogo.__version__,
     packages=find_packages(),
     install_requires=['moa', 'pybarst', 'moadevs'],
     author='Matthew Einhorn',
@@ -12,5 +12,5 @@ setup(
     url='https://cpl.cornell.edu/',
     license='MIT',
     description='Go/NoGo experiment.',
-    entry_points={'console_scripts': ['go_nogo=go_nogo_rig.main:run_app']},
+    entry_points={'console_scripts': ['go_nogo=go_nogo.main:run_app']},
     )

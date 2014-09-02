@@ -26,9 +26,9 @@ from kivy.animation import Sequence, Animation
 from moa.app import MoaApp
 from moa.compat import unicode_type
 from moa.config import ConfigParser
-from go_nogo_rig.graphics import MainView
-from go_nogo_rig.stages import RootStage
-from go_nogo_rig import device_config_name, exp_config_name
+from go_nogo.graphics import MainView
+from go_nogo.stages import RootStage
+from go_nogo import device_config_name, exp_config_name
 
 from os.path import dirname, join, isfile
 import traceback

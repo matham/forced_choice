@@ -22,10 +22,10 @@ from kivy.properties import (ObjectProperty, ListProperty,
 from kivy.clock import Clock
 from kivy.factory import Factory
 
-from go_nogo_rig.devices import Server, FTDIDevChannel, FTDIOdors,\
+from go_nogo.devices import Server, FTDIDevChannel, FTDIOdors,\
     FTDIOdorsSim, FTDIPin, FTDIPinSim, DAQInDevice, DAQInDeviceSim,\
     DAQOutDevice, DAQOutDeviceSim
-from go_nogo_rig import exp_config_name
+from go_nogo import exp_config_name
 
 
 odor_method_pat = compile('random([0-9]*)')
