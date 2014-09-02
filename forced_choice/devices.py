@@ -13,17 +13,21 @@ from moa.compat import bytes_type, unicode_type
 from moa.threads import ScheduledEventLoop
 from moa.device import Device
 from moa.device.digital import ButtonPort
+from moa.device.analog import NumericPropertyChannel
 
 from pybarst.core.server import BarstServer
 from pybarst.ftdi import FTDIChannel
 from pybarst.ftdi.switch import PinSettings, SerializerSettings
 from pybarst.mcdaq import MCDAQChannel
-from moadevs.ftdi import FTDIPinDevice, FTDISerializerDevice
+from moadevs.ftdi import FTDISerializerDevice
+from moadevs.mfc import MFC
 from moadevs.mcdaq import MCDAQDevice
 
-from kivy.properties import ConfigParserProperty, BooleanProperty, ListProperty
+from kivy.properties import (ConfigParserProperty, BooleanProperty,
+    ListProperty, ObjectProperty)
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.event import EventDispatcher
 
 from forced_choice import device_config_name
 
@@ -140,48 +144,60 @@ class FTDIDevChannel(DeviceStageInterface, ScheduledEventLoop, Device):
     '''
 
 
-class FTDIPinBase(object):
-    '''Base class for the FTDI pin devices.
-    '''
+class MassFlowControllerBase(EventDispatcher):
 
-    pump = BooleanProperty(False, allownone=True)
-    '''Controls the connected pump device.
-    '''
+    air = ObjectProperty(None)
+
+    odor_a = ObjectProperty(None)
+
+    odor_b = ObjectProperty(None)
 
 
-class FTDIPinSim(FTDIPinBase, ButtonPort):
-    '''Device used when simulating the pin devices.
-    '''
+class MassFlowControllerSim(MassFlowControllerBase):
+
+    def __init__(self, air, odor_a, odor_b):
+        self.air = NumericPropertyChannel(channel_widget=air[0],
+                                          prop_name=air[1])
+        self.odor_a = NumericPropertyChannel(channel_widget=odor_a[0],
+                                             prop_name=odor_a[1])
+        self.odor_b = NumericPropertyChannel(channel_widget=odor_b[0],
+                                             prop_name=odor_b[1])
+
+
+class MFCSafe(DeviceStageInterface, MFC):
     pass
 
 
-class FTDIPin(FTDIPinBase, DeviceStageInterface, FTDIPinDevice):
-    '''Device used when using the barst ftdi pin devices.
-    '''
+class MassFlowController(MassFlowControllerBase):
 
-    def __init__(self, **kwargs):
-        mapping = {'pump': self.pump_pin}
-        super(FTDIPin, self).__init__(mapping=mapping, input=False, **kwargs)
-
-    def get_settings(self):
-        '''Returns the :class:`PinSettings` instance used to create the Barst
-        FTDI pin device.
-        '''
-        return PinSettings(num_bytes=1, bitmask=(1 << self.pump_pin),
-                           output=True)
+    def start_device(self, started_callback, server):
+        self.air = MFCSafe(server=server, mfc_port_name=self.air_port,
+                           mfc_id=self.air_id)
+        self.odor_a = MFCSafe(server=server, mfc_port_name=self.air_port,
+                              mfc_id=self.air_id)
+        self.odor_b = MFCSafe(server=server, mfc_port_name=self.air_port,
+                              mfc_id=self.air_id)
 
     def start_channel(self):
-        pin = self.target
-        pin.open_channel()
-        pin.set_state(True)
-        pin.write(buff_mask=0xFF, buffer=[0x00])
+        pass
 
-    pump_pin = ConfigParserProperty(0, 'FTDI_pin', 'pump_pin',
-                                    device_config_name, val_type=int)
-    '''The pin number of the FTDI channel pin device that controls the pump.
+    air_id = ConfigParserProperty(0, 'MFC', 'air_id', device_config_name,
+                                  val_type=int)
 
-    Defaults to zero.
-    '''
+    air_port = ConfigParserProperty('', 'MFC', 'air_port', device_config_name,
+                                    val_type=unicode_type)
+
+    odor_a_id = ConfigParserProperty(0, 'MFC', 'odor_a_id', device_config_name,
+                                     val_type=int)
+
+    odor_a_port = ConfigParserProperty('', 'MFC', 'odor_a_port',
+        device_config_name, val_type=unicode_type)
+
+    odor_b_id = ConfigParserProperty(0, 'MFC', 'odor_b_id', device_config_name,
+                                     val_type=int)
+
+    odor_b_port = ConfigParserProperty('', 'MFC', 'odor_b_port',
+        device_config_name, val_type=unicode_type)
 
 
 class FTDIOdorsBase(object):
