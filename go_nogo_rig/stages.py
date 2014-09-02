@@ -235,20 +235,20 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         daq_in_dev = self.daq_in_dev
         daq_out_dev = self.daq_out_dev
         ftdi_chan = self.ftdi_chan
+        unschedule = Clock.unschedule
         for dev in (pin_dev, odor_dev, daq_in_dev, daq_out_dev):
             if dev is not None:
                 dev.deactivate(self)
 
+        unschedule(self.exception_callback)
         if self.simulate:
             self.stop_thread()
             return
-        unschedule = Clock.unschedule
 
-        unschedule(self.exception_callback)
-        for dev in (self.server, self.ftdi_chan, pin_dev, odor_dev, daq_in_dev,
+        for dev in (self.server, ftdi_chan, pin_dev, odor_dev, daq_in_dev,
                     daq_out_dev):
             if dev is not None:
-                unschedule(dev.exception_callback)
+                dev.cancel_exception()
                 dev.stop_thread(True)
                 dev.clear_events()
 
