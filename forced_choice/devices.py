@@ -25,7 +25,7 @@ from kivy.properties import ConfigParserProperty, BooleanProperty, ListProperty
 from kivy.app import App
 from kivy.clock import Clock
 
-from go_nogo import device_config_name
+from forced_choice import device_config_name
 
 
 class DeviceStageInterface(object):
