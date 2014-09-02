@@ -52,7 +52,7 @@
     has_odor: bool(app.base_stage) and len(app.base_stage.verify.odors) > self.idx
     has_go: bool(self.has_odor and app.base_stage.verify.odors[self.idx][1])
     text: ('{} - {}'.format(*app.base_stage.verify.odors[self.idx]) if self.has_go else '{}'.format(app.base_stage.verify.odors[self.idx][0])) if self.has_odor else ''
-    on_state: app.set_dev_state(self.state, self.odor_dev, 'p{}'.format(self.idx))
+    on_state: if not app.simulate: app.set_dev_state(self.state, self.odor_dev, 'p{}'.format(self.idx))
     halign: 'left'
 
 <OdorDarkSwitch@OdorSwitch>
@@ -143,21 +143,21 @@
             text_height: 30
             disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.pin_dev
             state: app.compute_simulated_state(getattr(self, 'state'), root.pin_dev and root.pin_dev.pump)
-            on_state: app.set_dev_state(self.state, root.pin_dev, 'pump')
+            on_state: if not app.simulate: app.set_dev_state(self.state, root.pin_dev, 'pump')
         SwitchIcon:
             id: house_light
             text: 'House light'
             text_height: 30
             disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
             state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.house_light)
-            on_state: app.set_dev_state(self.state, root.daq_out_dev, 'house_light')
+            on_state: if not app.simulate: app.set_dev_state(self.state, root.daq_out_dev, 'house_light')
         SwitchIcon:
             id: stress_light
             text: 'Stress light'
             text_height: 30
             disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
             state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.stress_light)
-            on_state: app.set_dev_state(self.state, root.daq_out_dev, 'stress_light')
+            on_state: if not app.simulate: app.set_dev_state(self.state, root.daq_out_dev, 'stress_light')
         SwitchIcon:
             id: nose_beam
             text: 'Nose beam'
