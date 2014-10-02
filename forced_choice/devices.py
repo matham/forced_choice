@@ -6,26 +6,28 @@ __all__ = ('DeviceStageInterface', 'Server', 'FTDIDevChannel', 'FTDIOdorsBase',
            'FTDIOdorsSim', 'FTDIOdors', 'DAQInDeviceBase', 'DAQInDeviceSim',
            'DAQInDevice', 'DAQOutDeviceBase', 'DAQOutDeviceSim',
            'DAQOutDevice', 'MassFlowControllerBase', 'MassFlowControllerSim',
-           'MFCSafe', 'MassFlowController')
+           'MFCSafe', 'MassFlowController', 'FFpyPlayer')
 
 from functools import partial
+import traceback
 
 from moa.compat import bytes_type, unicode_type
 from moa.threads import ScheduledEventLoop
 from moa.device import Device
-from moa.device.digital import ButtonPort
+from moa.device.digital import ButtonPort, ButtonChannel
 from moa.device.analog import NumericPropertyChannel
 
 from pybarst.core.server import BarstServer
 from pybarst.ftdi import FTDIChannel
-from pybarst.ftdi.switch import PinSettings, SerializerSettings
+from pybarst.ftdi.switch import SerializerSettings
 from pybarst.mcdaq import MCDAQChannel
+
 from moadevs.ftdi import FTDISerializerDevice
 from moadevs.mfc import MFC
 from moadevs.mcdaq import MCDAQDevice
 
 from kivy.properties import (ConfigParserProperty, BooleanProperty,
-    ListProperty, ObjectProperty)
+                             ListProperty, ObjectProperty)
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.event import EventDispatcher
@@ -35,8 +37,8 @@ from forced_choice import device_config_name
 
 class DeviceStageInterface(object):
     ''' Base class for devices used in this project. It provides the callback
-    on exception functionality which calls :meth:`ExperimentApp.device_exception`
-    when an exception occurs.
+    on exception functionality which calls
+    :meth:`ExperimentApp.device_exception` when an exception occurs.
     '''
 
     exception_callback = None
@@ -58,7 +60,7 @@ class DeviceStageInterface(object):
         '''Called to cancel the potentially scheduled exception, scheduled with
         :meth:`handle_exception`.
         '''
-        Clock.unshcedule(self.exception_callback)
+        Clock.unschedule(self.exception_callback)
         self.exception_callback = None
 
     def create_device(self):
@@ -90,8 +92,8 @@ class Server(DeviceStageInterface, ScheduledEventLoop, Device):
         server = self.target
         server.open_server()
 
-    server_path = ConfigParserProperty('', 'Server', 'barst_path',
-        device_config_name, val_type=unicode_type)
+    server_path = ConfigParserProperty(
+        '', 'Server', 'barst_path', device_config_name, val_type=unicode_type)
     '''The full path to the Barst executable. Could be empty if the server
     is already started, on remote computer, or if it's in the typical
     `Program Files` path. If the server is not running, this path is needed
@@ -149,19 +151,20 @@ class MassFlowControllerBase(EventDispatcher):
 
     air = ObjectProperty(None)
 
-    odor_a = ObjectProperty(None)
+    mfc_a = ObjectProperty(None)
 
-    odor_b = ObjectProperty(None)
+    mfc_b = ObjectProperty(None)
 
 
 class MassFlowControllerSim(MassFlowControllerBase):
 
-    def __init__(self, widget, air, odor_a, odor_b):
-        self.air = NumericPropertyChannel(channel_widget=widget, prop_name=air)
-        self.odor_a = NumericPropertyChannel(channel_widget=widget,
-                                             prop_name=odor_a)
-        self.odor_b = NumericPropertyChannel(channel_widget=widget,
-                                             prop_name=odor_b)
+    def __init__(self, air, mfc_a, mfc_b):
+        self.air = NumericPropertyChannel(channel_widget=air[0],
+                                          prop_name=air[1])
+        self.mfc_a = NumericPropertyChannel(channel_widget=mfc_a[0],
+                                            prop_name=mfc_a[1])
+        self.mfc_b = NumericPropertyChannel(channel_widget=mfc_b[0],
+                                            prop_name=mfc_b[1])
 
 
 class MFCSafe(DeviceStageInterface, MFC):
@@ -170,18 +173,18 @@ class MFCSafe(DeviceStageInterface, MFC):
 
 class MassFlowController(MassFlowControllerBase):
 
-    def start_device(self, started_callback, server):
+    def create_device(self, server):
         self.air = MFCSafe(server=server, mfc_port_name=self.air_port,
                            mfc_id=self.air_id)
-        self.odor_a = MFCSafe(server=server, mfc_port_name=self.air_port,
-                              mfc_id=self.air_id)
-        self.odor_b = MFCSafe(server=server, mfc_port_name=self.air_port,
-                              mfc_id=self.air_id)
+        self.mfc_a = MFCSafe(server=server, mfc_port_name=self.air_port,
+                             mfc_id=self.air_id)
+        self.mfc_b = MFCSafe(server=server, mfc_port_name=self.air_port,
+                             mfc_id=self.air_id)
 
     def start_channel(self):
         self.air.init_mfc()
-        self.odor_a.init_mfc()
-        self.odor_b.init_mfc()
+        self.mfc_a.init_mfc()
+        self.mfc_b.init_mfc()
 
     air_id = ConfigParserProperty(0, 'MFC', 'air_id', device_config_name,
                                   val_type=int)
@@ -189,17 +192,17 @@ class MassFlowController(MassFlowControllerBase):
     air_port = ConfigParserProperty('', 'MFC', 'air_port', device_config_name,
                                     val_type=unicode_type)
 
-    odor_a_id = ConfigParserProperty(0, 'MFC', 'odor_a_id', device_config_name,
-                                     val_type=int)
+    mfc_a_id = ConfigParserProperty(0, 'MFC', 'mfc_a_id', device_config_name,
+                                    val_type=int)
 
-    odor_a_port = ConfigParserProperty('', 'MFC', 'odor_a_port',
-        device_config_name, val_type=unicode_type)
+    mfc_a_port = ConfigParserProperty(
+        '', 'MFC', 'mfc_a_port', device_config_name, val_type=unicode_type)
 
-    odor_b_id = ConfigParserProperty(0, 'MFC', 'odor_b_id', device_config_name,
-                                     val_type=int)
+    mfc_b_id = ConfigParserProperty(0, 'MFC', 'mfc_b_id', device_config_name,
+                                    val_type=int)
 
-    odor_b_port = ConfigParserProperty('', 'MFC', 'odor_b_port',
-        device_config_name, val_type=unicode_type)
+    mfc_b_port = ConfigParserProperty(
+        '', 'MFC', 'mfc_b_port', device_config_name, val_type=unicode_type)
 
 
 class FTDIOdorsBase(object):
@@ -280,9 +283,9 @@ class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
         '''Returns the :class:`SerializerSettings` instance used to create the
         Barst FTDI odor device.
         '''
-        return SerializerSettings(clock_bit=self.clock_bit,
-            data_bit=self.data_bit, latch_bit=self.latch_bit,
-            num_boards=self.num_boards, output=True)
+        return SerializerSettings(
+            clock_bit=self.clock_bit, data_bit=self.data_bit,
+            latch_bit=self.latch_bit, num_boards=self.num_boards, output=True)
 
     def start_channel(self):
         odors = self.target
@@ -321,7 +324,11 @@ class DAQInDeviceBase(object):
     '''
 
     reward_beam_r = BooleanProperty(False, allownone=True)
-    '''Reads / controls the reward port photobeam.
+    '''Reads / controls the right reward port photobeam.
+    '''
+
+    reward_beam_l = BooleanProperty(False, allownone=True)
+    '''Reads / controls the left reward port photobeam.
     '''
 
 
@@ -337,7 +344,8 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
 
     def __init__(self, **kwargs):
         mapping = {'nose_beam': self.nose_beam_pin,
-                   'reward_beam_r': self.reward_beam_r_pin}
+                   'reward_beam_r': self.reward_beam_r_pin,
+                   'reward_beam_l': self.reward_beam_l_pin}
         super(DAQInDevice, self).__init__(mapping=mapping, input=True,
                                           **kwargs)
 
@@ -355,24 +363,36 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
         target.close_channel_server()
         target.open_channel()
 
-    SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'channel_number', device_config_name, val_type=int)
+    SAS_chan = ConfigParserProperty(
+        0, 'Switch_and_Sense_8_8', 'channel_number', device_config_name,
+        val_type=int)
     '''`channel_number`, the channel number of the Switch & Sense 8/8 as
     configured in InstaCal.
 
     Defaults to zero.
     '''
 
-    nose_beam_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'nose_beam_pin', device_config_name, val_type=int)
+    nose_beam_pin = ConfigParserProperty(
+        1, 'Switch_and_Sense_8_8', 'nose_beam_pin', device_config_name,
+        val_type=int)
     '''The port in the Switch & Sense to which the nose port photobeam is
     connected to.
 
     Defaults to zero.
     '''
 
-    reward_beam_r_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'reward_beam_r_pin', device_config_name, val_type=int)
+    reward_beam_r_pin = ConfigParserProperty(
+        3, 'Switch_and_Sense_8_8', 'reward_beam_r_pin', device_config_name,
+        val_type=int)
+    '''The port in the Switch & Sense to which the reward port photobeam is
+    connected to.
+
+    Defaults to zero.
+    '''
+
+    reward_beam_l_pin = ConfigParserProperty(
+        2, 'Switch_and_Sense_8_8', 'reward_beam_l_pin', device_config_name,
+        val_type=int)
     '''The port in the Switch & Sense to which the reward port photobeam is
     connected to.
 
@@ -388,7 +408,19 @@ class DAQOutDeviceBase(object):
     '''Controls the house light.
     '''
 
-    stress_light = BooleanProperty(False, allownone=True)
+    ir_leds = BooleanProperty(False, allownone=True)
+    '''Controls the stress light.
+    '''
+
+    fans = BooleanProperty(False, allownone=True)
+    '''Controls the stress light.
+    '''
+
+    feeder_r = BooleanProperty(False, allownone=True)
+    '''Controls the stress light.
+    '''
+
+    feeder_l = BooleanProperty(False, allownone=True)
     '''Controls the stress light.
     '''
 
@@ -405,7 +437,10 @@ class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
 
     def __init__(self, **kwargs):
         mapping = {'house_light': self.house_light_pin,
-                   'stress_light': self.stress_light_pin}
+                   'ir_leds': self.ir_leds_pin,
+                   'fans': self.fans_pin,
+                   'feeder_r': self.feeder_r_pin,
+                   'feeder_l': self.feeder_l_pin}
         super(DAQOutDevice, self).__init__(mapping=mapping, **kwargs)
 
     def create_device(self, server):
@@ -420,24 +455,51 @@ class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
         self.target.open_channel()
         self.target.write(mask=0xFF, value=0)
 
-    SAS_chan = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'channel_number', device_config_name, val_type=int)
+    SAS_chan = ConfigParserProperty(
+        0, 'Switch_and_Sense_8_8', 'channel_number', device_config_name,
+        val_type=int)
     '''`channel_number`, the channel number of the Switch & Sense 8/8 as
     configured in InstaCal.
     '''
 
-    house_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'house_light_pin', device_config_name, val_type=int)
+    house_light_pin = ConfigParserProperty(
+        4, 'Switch_and_Sense_8_8', 'house_light_pin', device_config_name,
+        val_type=int)
     '''The port in the Switch & Sense to which the house light is
     connected to.
 
     Defaults to zero.
     '''
 
-    stress_light_pin = ConfigParserProperty(0, 'Switch_and_Sense_8_8',
-        'stress_light_pin', device_config_name, val_type=int)
-    '''The port in the Switch & Sense to which the stress light is connected
-    to.
+    ir_leds_pin = ConfigParserProperty(
+        6, 'Switch_and_Sense_8_8', 'ir_leds_pin', device_config_name,
+        val_type=int)
 
-    Defaults to zero.
-    '''
+    fans_pin = ConfigParserProperty(
+        5, 'Switch_and_Sense_8_8', 'fans_pin', device_config_name,
+        val_type=int)
+
+    feeder_r_pin = ConfigParserProperty(
+        2, 'Switch_and_Sense_8_8', 'feeder_r_pin', device_config_name,
+        val_type=int)
+
+    feeder_l_pin = ConfigParserProperty(
+        0, 'Switch_and_Sense_8_8', 'feeder_l_pin', device_config_name,
+        val_type=int)
+
+
+class FFpyPlayer(ButtonChannel):
+
+    player = None
+
+    playing = False
+
+    def on_state(self, *l):
+        if self.playing == self.state:
+            return
+        try:
+            self.player.toggle_pause()
+        except Exception as e:
+            App.get_running_app().device_exception((e, traceback.format_exc()))
+            return
+        self.playing = not self.playing

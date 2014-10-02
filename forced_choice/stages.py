@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''The stages of the experiment.
 '''
 
@@ -8,7 +9,9 @@ from time import clock, strftime
 from re import match, compile
 from os.path import join, isfile
 import csv
-from random import choice
+from random import choice, randint, random
+from weakref import ref
+from ffpyplayer.player import MediaPlayer
 
 from moa.stage import MoaStage
 from moa.threads import ScheduledEventLoop
@@ -16,20 +19,79 @@ from moa.tools import ConfigPropertyList, to_bool
 from moa.compat import unicode_type
 
 from kivy.app import App
-from kivy.properties import (ObjectProperty, ListProperty,
-    ConfigParserProperty, NumericProperty, BooleanProperty,
-    StringProperty)
+from kivy.properties import (
+    ObjectProperty, ListProperty, ConfigParserProperty, NumericProperty,
+    BooleanProperty, StringProperty, OptionProperty)
 from kivy.clock import Clock
 from kivy.factory import Factory
+from kivy import resources
 
 from forced_choice.devices import Server, FTDIDevChannel, FTDIOdors,\
-    FTDIOdorsSim, FTDIPin, FTDIPinSim, DAQInDevice, DAQInDeviceSim,\
-    DAQOutDevice, DAQOutDeviceSim
-from forced_choice import exp_config_name
+    FTDIOdorsSim, DAQInDevice, DAQInDeviceSim, DAQOutDevice, DAQOutDeviceSim,\
+    MassFlowController, MassFlowControllerSim, FFpyPlayer
+from forced_choice import exp_config_name, device_config_name
 
 
 odor_method_pat = compile('random([0-9]*)')
-odor_pat = compile('p[0-9]+')
+odor_name_pat = compile('p[0-9]+')
+odor_select_pat = compile('(?:p([0-9]+))(?:\(([0-9\.]+)\))?\
+(?:/p([0-9]+)(?:\(([0-9\.]+)\))?)?(?:@\[(.+)\])?')
+
+
+def extract_odor(odors, block, N):
+    # do all the odors in the list match the pattern?
+    matched = [match(odor_select_pat, o) for o in odors]
+    if not all(matched):
+        raise Exception('not all odors in "{}" matched the pattern'
+                        ' for block {}'.format(odors, block))
+
+    odor_list = []
+    for m in matched:
+        oa, pa, ob, pb, rates = m.groups()
+        rates = rates or '100'
+        oa = int(oa)
+        if oa >= N:
+            raise Exception('Odor {} is larger than the number of valves, {}'.
+                            format(oa, N))
+        pa = float(pa) / 100. if pa is not None else 1.
+        if ob is not None:
+            ob = int(ob)
+            if ob >= N:
+                raise Exception('Odor {} is larger than the number of valves, '
+                                '{}'.format(ob, N))
+            pb = float(pb) / 100. if pb is not None else 1.
+
+        rates = [float(v.strip()) / 100. for v in rates.split(';')]
+        if not all([0. <= rate <= 1. for rate in rates]):
+            raise Exception('Rates, {}, are out of the (0, 100) range'.
+                            format(rates))
+
+        rate_group = []
+        for rate in rates:
+            if ob is not None:
+                rate_group.append(((oa, pa, rate), (ob, pb, 1. - rate)))
+            else:
+                rate_group.append(((oa, pa, rate), ))
+        odor_list.append(rate_group)
+    return odor_list
+
+
+def verify_valve_name(val):
+    if not match(odor_name_pat, val):
+        raise Exception('{} does not match the valve name pattern'.format(val))
+    return unicode_type(val)
+
+
+def verify_odor_method(val):
+    '''If the odor method (``val``) matches a odor method it returns ``val``,
+    otherwise it raises an exception.
+
+    Possible methods are `constant`, `list`, or `randomx`.
+    '''
+    if val in ('constant', 'list') or match(odor_method_pat, val):
+        return unicode_type(val)
+    else:
+        raise Exception('"{}" does not match an odor method'.format(val))
 
 
 class RootStage(MoaStage):
@@ -53,6 +115,10 @@ class RootStage(MoaStage):
             fd = self.animal_stage._fd
             if fd is not None:
                 fd.close()
+
+
+def ffplayer_callback(*l):
+    pass
 
 
 class InitBarstStage(MoaStage, ScheduledEventLoop):
@@ -79,9 +145,9 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     None.
     '''
 
-    pin_dev = ObjectProperty(None, allownone=True, rebind=True)
-    '''The :class:`FTDIPin` instance, or :class:`FTDIPinSim` instance when
-    :attr:`simulate`.
+    mfc = ObjectProperty(None, allownone=True, rebind=True)
+    '''The :class:`MassFlowController` instance, or
+    :class:`MassFlowControllerSim` instance when :attr:`simulate`.
     '''
 
     odor_dev = ObjectProperty(None, allownone=True, rebind=True)
@@ -98,6 +164,19 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     '''The :class:`DAQOutDevice` instance, or :class:`DAQOutDeviceSim`
     instance when :attr:`simulate`.
     '''
+
+    use_mfc = ConfigParserProperty(False, 'MFC', 'use_mfc', device_config_name,
+                                   val_type=to_bool)
+
+    sound_file_r = ConfigParserProperty(
+        '', 'Sound', 'sound_file_r', device_config_name, val_type=unicode_type)
+
+    sound_file_l = ConfigParserProperty(
+        '', 'Sound', 'sound_file_l', device_config_name, val_type=unicode_type)
+
+    sound_r = ObjectProperty(None, allownone=True, rebind=True)
+
+    sound_l = ObjectProperty(None, allownone=True, rebind=True)
 
     exception_callback = None
     '''The partial function that has been scheduled to be called by the kivy
@@ -141,12 +220,34 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
             return False
 
         # if we simulate, create the sim devices, otherwise the barst devices
-        if self.simulate:
-            self.create_sim_devices()
-            self.step_stage()
-            return True
-
         try:
+            f = self.sound_file_r or self.sound_file_l
+            if f:
+                sound_r = MediaPlayer(
+                    filename=resources.resource_find(f),
+                    callback=ref(ffplayer_callback), ff_opts={
+                        'loop': 0, 'vn': True, 'sn': True, 'paused': True})
+#                 sound_l = MediaPlayer(
+#                     filename=resources.resource_find(self.sound_file_l),
+#                     callback=ref(ffplayer_callback), ff_opts={
+#                         'loop': 0, 'vn': True, 'sn': True, 'paused': True})
+                ids = App.get_running_app().simulation_devices.ids
+                for o in (ids.odors.children + [ids[x] for x in [
+                    'ir_leds', 'fans', 'house_light', 'feeder_l', 'feeder_r',
+                    'nose_beam', 'reward_beam_l', 'reward_beam_r', 'sound_l',
+                    'sound_r']]):
+                    o.state = 'normal'
+                self.sound_l = FFpyPlayer(button=ids.sound_l)
+                self.sound_l.player = sound_r
+                self.sound_r = FFpyPlayer(button=ids.sound_r)
+                self.sound_r.player = sound_r
+                self.sound_l.activate(self)
+                self.sound_r.activate(self)
+            if self.simulate:
+                self.create_sim_devices()
+                self.step_stage()
+                return True
+
             self.create_devices()
             self.request_callback('start_devices',
                                   callback=self.finish_start_devices)
@@ -160,19 +261,27 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         '''
         app = App.get_running_app()
         ids = app.simulation_devices.ids
-        odors = ids['odors2'].children + ids['odors1'].children
+        odors = ids.odors.children
         N = len(odors)
-        self.odor_dev = FTDIOdorsSim(mapping={'p{}'.format(i):
-            odors[N - i - 1].__self__ for i in range(N)})
-        self.pin_dev = FTDIPinSim(mapping={'pump': ids['pump'].__self__})
-        self.daq_in_dev = DAQInDeviceSim(mapping={
-            'nose_beam': ids['nose_beam'].__self__,
-            'reward_beam_r': ids['reward_beam_r'].__self__})
-        self.daq_out_dev = DAQOutDeviceSim(mapping={
-            'house_light': ids['house_light'].__self__,
-            'stress_light': ids['stress_light'].__self__})
+        self.odor_dev = FTDIOdorsSim(mapping={
+            'p{}'.format(i): odors[N - i - 1].__self__ for i in range(N)})
 
-        self.pin_dev.activate(self)
+        daqout = ['ir_leds', 'fans', 'house_light', 'feeder_l', 'feeder_r']
+        daqin = ['nose_beam', 'reward_beam_l', 'reward_beam_r']
+        self.daq_in_dev = DAQInDeviceSim(
+            mapping={k: ids[k].__self__ for k in daqin})
+        self.daq_out_dev = DAQOutDeviceSim(
+            mapping={k: ids[k].__self__ for k in daqout})
+
+        if self.use_mfc:
+            mfc = self.mfc = MassFlowControllerSim(
+                air=(ids['air'].__self__, 'state'),
+                mfc_a=(ids['mfc_a'].__self__, 'state'),
+                mfc_b=(ids['mfc_b'].__self__, 'state'))
+            mfc.air.activate(self)
+            mfc.mfc_a.activate(self)
+            mfc.mfc_b.activate(self)
+
         self.odor_dev.activate(self)
         self.daq_in_dev.activate(self)
         self.daq_out_dev.activate(self)
@@ -181,26 +290,26 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         server = self.server = Server()
         server.create_device()
         barst_server = server.target
+
         ftdi = self.ftdi_chan = FTDIDevChannel()
-        pin = self.pin_dev = FTDIPin()
         odors = self.odor_dev = FTDIOdors()
-        ftdi.create_device([odors.get_settings(), pin.get_settings()],
-                           barst_server)
+        ftdi.create_device([odors.get_settings()], barst_server)
         daqin = self.daq_in_dev = DAQInDevice()
         daqout = self.daq_out_dev = DAQOutDevice()
         daqin.create_device(barst_server)
         daqout.create_device(barst_server)
+        if self.use_mfc:
+            mfc = self.mfc = MassFlowController()
+            mfc.create_device(barst_server)
 
     def start_devices(self):
         self.server.start_channel()
-        x = self.ftdi_chan.start_channel()
-        print x
-        self.odor_dev.target, self.pin_dev.target = x
-        print self.odor_dev.target, self.pin_dev.target
+        self.odor_dev.target = self.ftdi_chan.start_channel()[0]
         self.odor_dev.start_channel()
-        self.pin_dev.start_channel()
         self.daq_in_dev.start_channel()
         self.daq_out_dev.start_channel()
+        if self.use_mfc:
+            self.mfc.start_channel()
 
     def finish_start_devices(self, *largs):
         self._finished_init = True
@@ -211,10 +320,14 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         if self.paused:
             return
 
-        self.pin_dev.activate(self)
         self.odor_dev.activate(self)
         self.daq_in_dev.activate(self)
         self.daq_out_dev.activate(self)
+        if self.use_mfc:
+            mfc = self.mfc
+            mfc.air.activate(self)
+            mfc.mfc_a.activate(self)
+            mfc.mfc_b.activate(self)
         self.step_stage()
 
     def handle_exception(self, exception, event):
@@ -227,46 +340,62 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
 
     def stop_devices(self):
         '''Called from :class:`InitBarstStage` internal thread. It stops
-        and clears the states of all the devices, except the ftdi pin devices
-        to leave the pump high so it doesn't discharge.
+        and clears the states of all the devices.
         '''
-        pin_dev = self.pin_dev
         odor_dev = self.odor_dev
         daq_in_dev = self.daq_in_dev
         daq_out_dev = self.daq_out_dev
         ftdi_chan = self.ftdi_chan
+        mfc = self.mfc
+        if self.use_mfc and mfc is not None:
+            mfcs = mfc.air, mfc.mfc_a, mfc.mfc_b
+        else:
+            mfcs = ()
         unschedule = Clock.unschedule
-        for dev in (pin_dev, odor_dev, daq_in_dev, daq_out_dev):
+        for dev in (odor_dev, daq_in_dev, daq_out_dev) + mfcs:
             if dev is not None:
                 dev.deactivate(self)
+
+        if self.sound_l:
+            self.sound_l.deactivate(self)
+            self.sound_l.player.close_player()
+        if self.sound_r:
+            self.sound_r.deactivate(self)
+        self.sound_l = None
+        self.sound_r = None
 
         unschedule(self.exception_callback)
         if self.simulate:
             self.stop_thread()
             return
 
-        for dev in (self.server, ftdi_chan, pin_dev, odor_dev, daq_in_dev,
-                    daq_out_dev):
+        for dev in (self.server, ftdi_chan, odor_dev, daq_in_dev,
+                    daq_out_dev) + mfcs:
             if dev is not None:
                 dev.cancel_exception()
                 dev.stop_thread(True)
                 dev.clear_events()
 
         f = []
+        append = f.append
         if daq_out_dev is not None:
             mapping = daq_out_dev.mapping
             mask = 0
             for val in mapping.values():
                 mask |= 1 << val
-            f.append(partial(daq_out_dev.target.write, mask=mask, value=0))
+            append(partial(daq_out_dev.target.write, mask=mask, value=0))
 
         if odor_dev is not None and odor_dev.target is not None:
-            f.append(partial(odor_dev.target.write,
-                             set_low=range(8 * self.num_boards)))
+            append(partial(odor_dev.target.write,
+                           set_low=range(8 * odor_dev.num_boards)))
         if ftdi_chan is not None and ftdi_chan.target is not None:
-            f.append(ftdi_chan.target.close_channel_server)
+            append(ftdi_chan.target.close_channel_server)
         if daq_in_dev is not None and daq_in_dev.target is not None:
-            f.append(daq_in_dev.target.close_channel_server)
+            append(daq_in_dev.target.close_channel_server)
+        for m in mfcs:
+            if m is not None:
+                append(partial(m.set_mfc_rate, 0.))
+                append(m.target.close_channel_server)
 
         for fun in f:
             try:
@@ -276,26 +405,14 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         self.stop_thread()
 
 
-def verify_odor_method(val):
-    '''If the odor method (``val``) matches a odor method it returns ``val``,
-    otherwise it raises an exception.
-
-    Possible methods are `constant`, `list`, or `randomx`.
-    '''
-    if val in ('constant', 'list') or match(odor_method_pat, val):
-        return val
-    else:
-        raise Exception('"{}" does not match an odor method'.format(val))
-
-
 class VerifyConfigStage(MoaStage):
     '''Stage that is run before the first block of each animal.
 
     The stage verifies that all the experimental parameters are correct and
     computes all the values, e.g. odors needed for the trials.
 
-    If the values are incorrect, it calls :meth:`ExperimentApp.device_exception`
-    with the exception.
+    If the values are incorrect, it calls
+    :meth:`ExperimentApp.device_exception` with the exception.
     '''
 
     def recover_state(self, state):
@@ -307,110 +424,163 @@ class VerifyConfigStage(MoaStage):
             return False
 
         try:
-            self.verify_stage()
+            self.read_odors()
+            self.ensure_full_blocks()
+            self.parse_odors()
+            if any(self.sound_dur):
+                if not self.barst.sound_r or not self.barst.sound_l:
+                    raise Exception('Sound selected, but sound files not '
+                                    'provided')
+            ch = App.get_running_app().simulation_devices.ids.odors.children
+            no = int(self.NO_valve[0][1:])
+            mix = int(self.mix_valve[0][1:])
+            ch[15 - no].background_down = 'dark-blue-led-on-th.png'
+            ch[15 - no].background_normal = 'dark-blue-led-off-th.png'
+            ch[15 - mix].background_down = 'brown-led-on-th.png'
+            ch[15 - mix].background_normal = 'brown-led-off-th.png'
         except Exception as e:
             App.get_running_app().device_exception((e, traceback.format_exc()))
             return
         self.step_stage()
         return True
 
-    def verify_stage(self):
-        '''Verifies that all the paramters are correct and computes the odors
-        and go/nogo for each trial in each block.
+    def read_odors(self):
+        '''Reads odors from a csv file. Each line is 3, or 4 cols with
+        valve index, odor name, and the side of the odor (r, l, rl, lr, or -).
+        If using an mfc, the 4th column is either a, or b indicating the mfc
+        to use of that valve.
         '''
-        odor_NO = self.odor_NO
-        odor_method = self.odor_method
-        odor_selection = self.odor_selection
-        num_trials = self.num_trials
-        num_blocks = self.num_blocks
-        app = App.get_running_app()
-        odor_go = {}
+        N = 8 * self.barst.odor_dev.num_boards
+        use_mfc = self.barst.use_mfc
+        odor_side = ['rl', ] * N
+        valve_mfc = [None, ] * N
+        odor_name = ['p{}'.format(i) for i in range(N)]
 
         # now read the odor list
-        odor_path = self.odor_path
-        if not isfile(odor_path):
-            odor_path = join(app.data_directory, odor_path)
+        odor_path = resources.resource_find(self.odor_path)
         with open(odor_path, 'rb') as fh:
-            odors = [('p{}'.format(i), '') for i in
-                     range(8 * app.base_stage.barst.odor_dev.num_boards)]
             for row in csv.reader(fh):
                 row = [elem.strip() for elem in row]
-                go = bool(row[2] and int(row[2]))
-                odor_idx = int(row[0])
-                odor_go[odors[odor_idx][0]] = go
-                odors[odor_idx] = row[1], 'GO' if go else 'NOGO'
-            self.odors = odors
+                if use_mfc:
+                    i, name, side, mfc = row[:4]
+                else:
+                    i, name, side = row[:3]
+                i = int(i)
+                if i >= N:
+                    raise Exception('Odor {} is out of bounds: {}'.
+                                    format(i, row))
 
+                sides = ('rl', 'lr', 'l', 'r', '-', '')
+                if side not in sides:
+                    raise Exception('Side {} not recognized. Acceptable '
+                                    'values are {}'.format(side, sides))
+                if side == 'lr':
+                    side = 'rl'
+                if side == '':
+                    side = '-'
+                odor_name[i] = name
+                odor_side[i] = side
+                if use_mfc:
+                    if mfc not in ('a', 'b'):
+                        raise Exception('MFC {} not recognized. Acceptable '
+                                        'values are a or b'.format(mfc))
+                    valve_mfc[i] = 'mfc_a' if mfc == 'a' else 'mfc_b'
+        self.odor_side = odor_side
+        self.odor_names = odor_name
+        self.valve_mfc = valve_mfc
+
+    def ensure_full_blocks(self):
+        num_blocks = self.num_blocks
+        if num_blocks <= 0:
+            raise Exception('Number of blocks is not positive')
         # make sure the number of blocks match, otherwise, fill it up
-        for item in (self.false_no_go_iti, self.false_go_iti,
-                     self.no_go_iti, self.go_iti, self.base_iti, odor_NO,
-                     odor_method, odor_selection, self.decision_duration,
-                     self.max_nose_poke, num_trials, self.min_nose_poke,
-                     self.wait_for_nose_poke, self.incomplete_iti):
+        for item in (self.num_trials, self.wait_for_nose_poke, self.odor_delay,
+                     self.odor_method, self.odor_selection, self.NO_valve,
+                     self.min_nose_poke, self.sound_cue_delay,
+                     self.max_nose_poke, self.sound_dur,
+                     self.max_decision_duration, self.bad_iti,
+                     self.good_iti, self.incomplete_iti, self.num_pellets,
+                     self.mix_valve):
             if len(item) > num_blocks:
-                raise Exception('The size of {} is not equal to the number '
+                raise Exception('The size of {} is larger than the number '
                                 'of blocks, {}'.format(item, num_blocks))
             elif len(item) < num_blocks:
                 item += [item[-1]] * (num_blocks - len(item))
+        if any([x <= 0 for x in self.num_trials]):
+            raise Exception('Number of trials is not positive for every block')
+        for v in self.NO_valve:
+            m = match(odor_name_pat, v)
+            if m is None or int(v[1:]) >= 16:
+                raise Exception('NO valve {} is not recognized')
+        for v in self.mix_valve:
+            m = match(odor_name_pat, v)
+            if m is None or int(v[1:]) >= 16:
+                raise Exception('Mixing valve {} is not recognized')
 
-        # now generate the actual trial odors
-        odors = list(odor_selection)
-        # for each block
-        for i, odor in enumerate(odors):
-            odor = [o for o in odor if odor]
-            if not len(odor):
+    def parse_odors(self):
+        odor_method = self.odor_method
+        odor_selection = self.odor_selection
+        num_trials = self.num_trials
+        app = App.get_running_app()
+        trial_odors = [None, ] * len(odor_selection)
+        wfnp = self.wait_for_nose_poke
+
+        for block, block_odors in enumerate(odor_selection):
+            n = num_trials[block]
+            if not wfnp[block]:
+                trial_odors[block] = [None, ] * n
+                continue
+
+            block_odors = [o.strip() for o in block_odors if o.strip()]
+            if not len(block_odors):
                 raise Exception('no odors specified for block {}'
-                                .format(i))
+                                .format(block))
 
-            method = odor_method[i]
+            method = odor_method[block]
             # if there's only a filename there, read it for this block
             if method == 'list':
-                if len(odor) > 1:
+                if len(block_odors) > 1:
                     raise Exception('More than one odor "{}" specified'
-                        'for list odor method'.format(odor))
+                                    'for list odor method'.format(block_odors))
 
-                if not isfile(odor[0]):
-                    odor[0] = join(app.data_directory, odor[0])
-                with open(odor_path, 'rb') as fh:
+                if not isfile(block_odors[0]):
+                    block_odors[0] = join(app.data_directory, block_odors[0])
+                with open(block_odors[0], 'rb') as fh:
                     read_odors = list(csv.reader(fh))
                 idx = None
-                for row in read_odors:
-                    if int(row[0]) == i:
-                        idx = i
+                for line_num, row in enumerate(read_odors):
+                    if int(row[0]) == block:
+                        idx = line_num
                         break
 
                 if idx is None:
                     raise Exception('odors not found for block "{}" '
-                                    'in the list'.format(i))
-                odors[i] = read_odors[idx][1:]
-                matched = [match(odor_pat, o) for o in odors[i]]
-                if not all(matched):
-                    raise Exception('not all odors in "{}" '
-                    'matched the "p[0-9]+" pattern for block {}'
-                    .format(odors[i], i))
-
+                                    'in the list'.format(block))
+                odors = extract_odor(read_odors[line_num][1:], block, 16)
+                if any([len(o) != 1 for o in odors]):
+                    raise Exception('Number of flow rates specified for block'
+                                    ' {} is not 1: {}'.format(block, odors))
+                trial_odors[block] = [o for elems in odors for o in elems]
             # then it's a list of odors to use in the block
             else:
 
-                # do all the odors in the list match the pattern?
-                matched = [match(odor_pat, o) for o in odor]
-                if not all(matched):
-                    raise Exception('not all odors in "{}" '
-                    'matched the "p[0-9]+" pattern for block {}'
-                    .format(odor, i))
+                odors = extract_odor(block_odors, block, 16)
+                odors = [o for elems in odors for o in elems]
 
                 # now use the method to generate the odors
                 if method == 'constant':
-                    if len(odor) > 1:
-                        raise Exception('More than one odor "{}" specified'
-                            'for constant odor method'.format(odor))
-                    odors[i] = odor * num_trials[i]
+                    if len(odors) > 1:
+                        raise Exception(
+                            'More than one odor "{}" specified for constant '
+                            'odor method'.format(odors))
+                    trial_odors[block] = odors * n
 
                 # random
                 else:
-                    if len(odor) == 1:
-                        raise Exception('Only one odor "{}" was specified '
-                            'with with random method'.format(odor))
+                    if len(odors) <= 1:
+                        raise Exception(
+                            'Only one odor "{}" was specified with with random'
+                            ' method'.format(odors))
                     m = match(odor_method_pat, method)
                     if m is None:
                         raise Exception('method "{}" does not match a '
@@ -419,51 +589,25 @@ class VerifyConfigStage(MoaStage):
                     # the condition for this random method
                     condition = int(m.group(1)) if m.group(1) else 0
                     if condition <= 0:  # random without condition
-                        odors[i] = [choice(odor) for _
-                                    in range(num_trials[i])]
+                        trial_odors[block] = [choice(odors) for _ in range(n)]
                     else:
                         rand_odors = []
-                        for _ in range(num_trials[i]):
-                            o = choice(odor)
+                        for _ in range(n):
+                            o = randint(0, len(odors) - 1)
                             while (len(rand_odors) >= condition and
                                    all([t == o for t in
                                         rand_odors[-condition:]])):
-                                o = choice(odor)
+                                o = randint(0, len(odors) - 1)
                             rand_odors.append(o)
-                        odors[i] = rand_odors
+                        trial_odors[block] = [odors[i] for i in rand_odors]
 
-        for i, odor in enumerate(odors):
-            if len(odor) != num_trials[i]:
-                raise Exception('The number of odors "{}" for block "{}" '
+        for block, odors in enumerate(trial_odors):
+            if len(odors) != num_trials[block]:
+                raise Exception(
+                    'The number of odors "{}" for block "{}" '
                     'doesn\'t match the number of trials "{}"'.format(
-                    odor, i, num_trials[i]))
-
-        self.trial_odors = odors
-        self.trial_go = [[odor_go[o] for o in odor] for odor in odors]
-
-    def compute_reward(self, block, trial, went):
-        '''Takes the current ``block``, ``trial``, and whether the animal
-        ``went`` or didn't go to the reward port and returns a 2-tuple of
-        whether the animal should be rewarded, and the ITI for this trial.
-        '''
-        if self.trial_go[block][trial]:  # supposed to go
-            if went:  # positive
-                reward, iti = True, self.go_iti[block]
-            else:  # false negative
-                reward, iti = False, self.false_no_go_iti[block]
-        else:  # not supposed to go
-            if went:  # false positive
-                reward, iti = False, self.false_go_iti[block]
-            else:  # negative
-                reward, iti = False, self.no_go_iti[block]
-
-        return reward, iti
-
-    trial_odors = ListProperty(None, allownone=True)
-    '''A 2d list of the odors for each trial in each block. '''
-
-    trial_go = ListProperty(None, allownone=True)
-    '''A 2d list of whether it's a go or nogo for each trial in each block. '''
+                        odors, block, num_trials[block]))
+        self.trial_odors = trial_odors
 
     num_blocks = ConfigParserProperty(1, 'Experiment', 'num_blocks',
                                       exp_config_name, val_type=int)
@@ -471,51 +615,38 @@ class VerifyConfigStage(MoaStage):
     '''
 
     num_trials = ConfigPropertyList(1, 'Experiment', 'num_trials',
-                                      exp_config_name, val_type=int)
+                                    exp_config_name, val_type=int)
     '''A list of the number of trials to run for each block in
     :attr:`num_blocks`.
     '''
 
-    wait_for_nose_poke = ConfigPropertyList(True, 'Experiment',
-        'wait_for_nose_poke', exp_config_name, val_type=to_bool)
+    wait_for_nose_poke = ConfigPropertyList(
+        True, 'Experiment', 'wait_for_nose_poke', exp_config_name,
+        val_type=to_bool)
     '''A list of, for each block in :attr:`num_blocks`, whether to wait for a
     nose poke, or if to immediately go to the reward stage. When False,
     entering the reward port will dispense reward and end the trial. The ITI
     will then be :attr:`base_iti` for that block.
     '''
 
-    min_nose_poke = ConfigPropertyList(0, 'Experiment', 'min_nose_poke',
-                                       exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the minimum duration
-    in the nose port. A nose port exit less than this duration will result
-    in an incomplete trial. The ITI will then be :attr:`incomplete_iti`.
+    odor_delay = ConfigPropertyList(0, 'Odor', 'odor_delay',
+                                    exp_config_name, val_type=float)
 
-    If zero, there is no minimum.
-    '''
+    mix_dur = ConfigParserProperty(1.5, 'Odor', 'mix_dur',
+                                   exp_config_name, val_type=float)
 
-    max_nose_poke = ConfigPropertyList(1, 'Experiment', 'max_nose_poke',
-                                       exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the maximum duration
-    of the nose port stage. After this duration, the stage will terminate and
-    proceed to the decision stage even if the animal is still in the nose port.
+    air_rate = ConfigParserProperty(0, 'Odor', 'air_rate', exp_config_name,
+                                    val_type=float)
 
-    If zero, there is no maximum.
-    '''
+    mfc_a_rate = ConfigParserProperty(.1, 'Odor', 'mfc_a_rate',
+                                      exp_config_name, val_type=float)
 
-    decision_duration = ConfigPropertyList(1, 'Experiment',
-        'decision_duration', exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the maximum duration
-    of the decision stage. After this duration, the stage will terminate and
-    proceed to the ITI stage even if the animal didn't visit the reward port.
+    mfc_b_rate = ConfigParserProperty(.1, 'Odor', 'mfc_b_rate',
+                                      exp_config_name, val_type=float)
 
-    The decision determines whether a reward is dispensed and the duration of
-    the ITI.
-
-    If zero, there is no maximum.
-    '''
-
-    odor_method = ConfigPropertyList('constant', 'Experiment',
-        'odor_method', exp_config_name, val_type=verify_odor_method)
+    odor_method = ConfigPropertyList(
+        'constant', 'Odor', 'odor_method', exp_config_name,
+        val_type=verify_odor_method)
     '''A list of, for each block in :attr:`num_blocks`, the method used to
     determine which odor to use in the trials. Possible methods are `constant`,
     `randomx`, or `list`. :attr:`odor_selection` is used to select the odor
@@ -547,15 +678,15 @@ class VerifyConfigStage(MoaStage):
     Defaults to `constant`.
     '''
 
-    odor_selection = ConfigPropertyList('p1', 'Experiment',
-        'odor_selection', exp_config_name, val_type=unicode_type,
+    odor_selection = ConfigPropertyList(
+        'p1', 'Odor', 'odor_selection', exp_config_name, val_type=unicode_type,
         inner_list=True)
     '''A list of, for each block in :attr:`num_blocks`, a list of odors to
     select from for each block. See :attr:`odor_method`.
     '''
 
-    odor_NO = ConfigPropertyList('p0', 'Experiment', 'odor_NO',
-                                 exp_config_name, val_type=unicode_type)
+    NO_valve = ConfigPropertyList('p0', 'Odor', 'NO_valve',
+                                  exp_config_name, val_type=verify_valve_name)
     '''A list of, for each block in :attr:`num_blocks`, the normally open
     (mineral oil) odor valve. I.e. the valve which is normally open and closes
     during the trial when the odor is released.
@@ -563,8 +694,12 @@ class VerifyConfigStage(MoaStage):
     Defaults to ``p0``.
     '''
 
-    odor_path = ConfigParserProperty(u'odor_list.txt', 'Experiment',
-        'Odor_list_path', exp_config_name, val_type=unicode_type)
+    mix_valve = ConfigPropertyList('p7', 'Odor', 'mix_valve',
+                                   exp_config_name, val_type=verify_valve_name)
+
+    odor_path = ConfigParserProperty(
+        u'odor_list.txt', 'Odor', 'Odor_list_path', exp_config_name,
+        val_type=unicode_type)
     '''The filename of a file containing the names of odors and whether each
     odor is a go or nogo. The structure of the file is as follows: each line
     describes an odor and is a 3-column comma separated list of
@@ -580,47 +715,78 @@ class VerifyConfigStage(MoaStage):
         ...
     '''
 
-    odors = ListProperty(None)
-    '''List of 2-tuples for all the odors, 1st element is odor name, second
-    element is either empty string, 'NOGO', or 'GO' string.
+    valve_mfc = None
+
+    odor_side = ListProperty([])
+
+    odor_names = ListProperty([])
+
+    def on_odor_names(self, *largs):
+        odors = App.get_running_app().simulation_devices.ids.odors
+        sides, names = self.odor_side, self.odor_names
+        for i, o in enumerate(odors.children[::-1]):
+            s = u''
+            side = sides[i]
+            if 'l' in side:
+                s += u'[color=0080FF]L[/color]'
+            if 'r' in side:
+                s += u'[color=9933FF]R[/color]'
+            if '-' == side:
+                s = u'[color=FF0000]Ø[/color]'
+            o.text = u'{}\n{}'.format(s, names[i])
+
+    trial_odors = None
+    '''A 2d list of the odors for each trial in each block. '''
+
+    min_nose_poke = ConfigPropertyList(0, 'Odor', 'min_nose_poke',
+                                       exp_config_name, val_type=float)
+    '''A list of, for each block in :attr:`num_blocks`, the minimum duration
+    in the nose port AFTER the odor is released. A nose port exit less than
+    this duration will result
+    in an incomplete trial. The ITI will then be :attr:`incomplete_iti`.
+
+    If zero, there is no minimum.
     '''
 
-    base_iti = ConfigPropertyList(1, 'Experiment', 'base_iti', exp_config_name,
-                                  val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the nose poke stage is skipped and the animal is always rewarded.
+    sound_cue_delay = ConfigPropertyList(
+        0, 'Odor', 'sound_cue_delay', exp_config_name, val_type=float)
+
+    max_nose_poke = ConfigPropertyList(10, 'Odor', 'max_nose_poke',
+                                       exp_config_name, val_type=float)
+    '''A list of, for each block in :attr:`num_blocks`, the maximum duration
+    of the nose port stage. After this duration, the stage will terminate and
+    proceed to the decision stage even if the animal is still in the nose port.
+
+    If zero, there is no maximum.
     '''
 
-    go_iti = ConfigPropertyList(1, 'Experiment', 'go_iti', exp_config_name,
-                                val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the the animal goes to the reward port in a go trial.
-    '''
-
-    no_go_iti = ConfigPropertyList(1, 'Experiment', 'no_go_iti',
+    sound_dur = ConfigPropertyList(0, 'Sound', 'sound_dur',
                                    exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the the animal does not to the reward port in a nogo trial.
+
+    max_decision_duration = ConfigPropertyList(
+        20, 'Experiment', 'max_decision_duration', exp_config_name,
+        val_type=float)
+    '''A list of, for each block in :attr:`num_blocks`, the maximum duration
+    of the decision stage. After this duration, the stage will terminate and
+    proceed to the ITI stage even if the animal didn't visit the reward port.
+
+    The decision determines whether a reward is dispensed and the duration of
+    the ITI.
+
+    If zero, there is no maximum.
     '''
 
-    false_go_iti = ConfigPropertyList(1, 'Experiment', 'false_go_iti',
-                                      exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the the animal goes to the reward port in a nogo trial.
-    '''
+    num_pellets = ConfigPropertyList(2, 'Experiment', 'num_pellets',
+                                     exp_config_name, val_type=int)
 
-    false_no_go_iti = ConfigPropertyList(1, 'Experiment', 'false_no_go_iti',
-                                         exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the the animal does not go to the reward port in a go trial.
-    '''
+    good_iti = ConfigPropertyList(3, 'ITI', 'good_iti', exp_config_name,
+                                  val_type=float)
 
-    incomplete_iti = ConfigPropertyList(1, 'Experiment', 'incomplete_iti',
+    bad_iti = ConfigPropertyList(4, 'ITI', 'bad_iti', exp_config_name,
+                                 val_type=float)
+
+    incomplete_iti = ConfigPropertyList(4, 'ITI', 'incomplete_iti',
                                         exp_config_name, val_type=float)
-    '''A list of, for each block in :attr:`num_blocks`, the ITI duration when
-    the animal stays in the nose port less than the :attr:`min_nose_poke` if
-    non-zero.
-    '''
 
 
 class AnimalStage(MoaStage):
@@ -633,42 +799,49 @@ class AnimalStage(MoaStage):
     animal_id = StringProperty('')
     '''The animal id of the current animal. '''
 
+    num_trials = NumericProperty(0)
+
     trial_start_ts = None
     '''The start time of the trial. '''
+
+    trial_start_time = None
 
     nose_poke_ts = None
     '''The time of the nose port entry. '''
 
+    odor_start_ts = None
+
     nose_poke_exit_ts = None
     '''The time of the nose port exit. '''
 
-    reward_entery_ts = None
+    nose_poke_exit_timed_out = False
+
+    reward_entry_ts = None
     '''The time of the reward port exit. '''
 
-    odor = ''
-    '''The odor name of the current trial. '''
+    reward_entry_timed_out = False
 
-    is_go = None
-    '''Whether the current trial is a go (True) or nogo (False). '''
+    sound = ObjectProperty(None, allownone=True)
 
-    went = None
-    '''Whether the animal went to the reward port in time for this trial. '''
+    odor = None
+    ''' The odor to reward for this trial.
+    '''
 
-    passed = None
-    '''If the animal passed this trial. '''
+    side = None
+    '''The side of :attr:`odor` to reward.
+    '''
 
-    reward = BooleanProperty(False)
-    '''If this trial will be rewarded. '''
+    side_went = None
+    '''The side the animal visited. '''
+
+    reward_side = OptionProperty(None, options=['feeder_r', 'feeder_l', False,
+                                                None], allownone=True)
+    '''The side on which to reward this trial. '''
 
     iti = NumericProperty(0)
     '''The ITI of this trial. '''
 
-    wait_for_nose_poke = BooleanProperty(False)
-    '''Whether to wait for nose port entry or skip to the reward entery stage
-    for the trial.
-    '''
-
-    incomplete = BooleanProperty(False)
+    outcome = None
     '''Whether this trial was an incomplete. '''
 
     outcome_wid = None
@@ -683,8 +856,13 @@ class AnimalStage(MoaStage):
     total_incomplete = NumericProperty(0)
     '''Total number of incomplete trials for this block. '''
 
+    outcomes = []
+
     log_filename = ConfigParserProperty('', 'Experiment', 'log_filename',
                                         exp_config_name, val_type=unicode_type)
+
+    filter_len = ConfigParserProperty(1, 'Experiment', 'filter_len',
+                                      exp_config_name, val_type=int)
 
     def recover_state(self, state):
         state.pop('finished', None)
@@ -692,12 +870,13 @@ class AnimalStage(MoaStage):
 
     def post_verify(self):
         '''Executed after the :class:`VerifyConfigStage` stage finishes. '''
-        block = self.block.count
-
+        verify = self.verify
+        wfnp = verify.wait_for_nose_poke
         predict = App.get_running_app().prediction_container
         predict_add = predict.add_widget
-        odors = self.verify.trial_odors
-        go = self.verify.trial_go
+        odors = verify.trial_odors
+        names = verify.odor_names
+        sides = verify.odor_side
         PredictionGrid = Factory.get('PredictionGrid')
         TrialPrediction = Factory.get('TrialPrediction')
 
@@ -706,108 +885,179 @@ class AnimalStage(MoaStage):
             block_grid = PredictionGrid()
             predict_add(block_grid)
             block_add = block_grid.add_widget
+            w = wfnp[block]
             for trial in range(len(odors[block])):
-                trial_wid = TrialPrediction(odor=odors[block][trial],
-                    go=go[block][trial], trial=trial)
+                if w:
+                    odor = odors[block][trial]
+                    if len(odor) == 1:
+                        odor = odor[0]
+                    else:
+                        odor = odor[0] if odor[0][2] >= odor[1][2] else odor[1]
+                    side = sides[odor[0]]
+                    if side == '-':
+                        side = u'Ø'
+                    trial_wid = TrialPrediction(
+                        odor=names[odor[0]], side=side, trial=trial)
+                else:
+                    trial_wid = TrialPrediction(side='rl', trial=trial)
                 block_add(trial_wid)
+
+    def initialize_box(self):
+        ''' Turns on fans, lights etc. '''
+        self.verify.barst.daq_out_dev.set_state(high=['ir_leds', 'fans'])
 
     def pre_block(self):
         '''Executed before each block. '''
         self.total_fail = self.total_pass = self.total_incomplete = 0
-        self.wait_for_nose_poke = \
-            self.verify.wait_for_nose_poke[self.block.count]
+        self.num_trials = self.verify.num_trials[self.block.count]
+        for plot in App.get_running_app().plots:
+            plot.points = []
+        self.outcomes = []
+
+    def start_mixing(self):
+        verify, block, trial = self.verify, self.block.count, self.trial.count
+        barst = verify.barst
+        if barst.use_mfc:
+            pass
+        else:
+            odors = verify.trial_odors[block][trial]
+            barst.odor_dev.set_state(high=['p{}'.format(o[0]) for o in odors] +
+                                     [verify.NO_valve[block]])
 
     def pre_trial(self):
         '''Executed before each trial. '''
+        self.trial_start_ts = clock()
+        self.trial_start_time = strftime('%H:%M:%S')
+
         container = App.get_running_app().outcome_container
         self.outcome_wid = widget = container.children[0]
         container.remove_widget(widget)
         container.add_widget(widget, len(container.children))
 
         block, trial = self.block.count, self.trial.count
+        verify = self.verify
         widget.init_outcome(self.animal_id, block, trial)
-        self.trial_start_ts = clock()
-        widget.is_go = self.is_go = self.verify.trial_go[block][trial]
-        self.odor = self.verify.trial_odors[block][trial]
-        self.trial_went = self.reward = self.incomplete = False
+
+        self.nose_poke_ts = self.odor_start_ts = self.nose_poke_exit_ts = None
+        self.reward_entry_ts = self.sound = self.side_went = None
+        self.reward_side = self.outcome = None
+        self.reward_entry_timed_out = self.nose_poke_exit_timed_out = False
         self.iti = 0
+
+        if not verify.wait_for_nose_poke[block]:
+            self.odor = ''
+            self.side = 'rl'
+            return
+
+        odor = verify.trial_odors[block][trial]
+        if len(odor) == 1:
+            self.odor = odor = odor[0]
+        else:
+            self.odor = odor = odor[0] if odor[0][2] >= odor[1][2] else odor[1]
+        widget.side = side = self.side = verify.odor_side[odor[0]]
+        if verify.sound_dur[block] and side != '-':
+            self.sound = (verify.barst.sound_r if 'r' in side else
+                          verify.barst.sound_l)
 
     def do_nose_poke(self):
         '''Executed after the first nose port entry of the trial. '''
         self.nose_poke_ts = clock()
-        self.outcome_wid.ttnp = self.nose_poke_ts - self.trial_start_ts
+        ttnp = self.outcome_wid.ttnp = self.nose_poke_ts - self.trial_start_ts
+        App.get_running_app().plots[0].points.append((self.trial.count, ttnp))
+
+    def do_odor_release(self):
+        self.verify.barst.odor_dev.set_state(
+            high=[self.verify.mix_valve[self.block.count]])
+        self.odor_start_ts = clock()
 
     def do_nose_poke_exit(self, timed_out):
         '''Executed after the first nose port exit of the trial. '''
-        wid = self.outcome_wid
         te = self.nose_poke_exit_ts = clock()
-        wid.tinp = te - self.nose_poke_ts
+
+        # turn off odor
+        verify, block, trial = self.verify, self.block.count, self.trial.count
+        barst = verify.barst
+        if barst.use_mfc:
+            pass
+        else:
+            odors = verify.trial_odors[block][trial]
+            barst.odor_dev.set_state(
+                low=['p{}'.format(o[0]) for o in odors] +
+                [verify.NO_valve[block], verify.mix_valve[block]])
+
+        self.nose_poke_exit_timed_out = timed_out
+        wid = self.outcome_wid
+        tinp = wid.tinp = te - self.odor_start_ts
+        App.get_running_app().plots[1].points.append((self.trial.count, tinp))
+
         if not timed_out:
-            block = self.block.count
             min_poke = self.verify.min_nose_poke[block]
-            self.incomplete = wid.incomplete = \
-                min_poke > 0 and wid.tinp < min_poke
-            if self.incomplete:
+            if min_poke > 0 and tinp < min_poke:
+                self.outcome = 'inc'
+                self.reward_side = False
                 self.total_incomplete += 1
-                self.passed = wid.passed = False
-                self.reward = wid.rewarded = False
-                verify = self.verify
+                wid.passed = False
+                wid.incomplete = True
                 self.iti = wid.iti = verify.incomplete_iti[block]
 
                 blocks = App.get_running_app().prediction_container.children
                 trials = blocks[len(blocks) - block - 1].children
-                predict = trials[len(trials) - self.trial.count - 1]
+                predict = trials[len(trials) - trial - 1]
                 predict.outcome = False
                 predict.outcome_text = 'INC'
+                self.outcomes.append(0)
 
-    def do_decision(self, timed_out):
+    def do_decision(self, r, l, timed_out):
         '''Executed after the reward port entry or after waiting for the
         reward port entry timed out. '''
-        verify, block, trial = self.verify, self.block, self.trial
+        ts = self.reward_entry_ts = clock()
+        verify, block, trial = self.verify, self.block.count, self.trial.count
         wid = self.outcome_wid
+        blocks = App.get_running_app().prediction_container.children
+        trials = blocks[len(blocks) - block - 1].children
+        predict = trials[len(trials) - trial - 1]
 
-        if not self.wait_for_nose_poke:
-            ts = self.reward_entery_ts = clock()
-            wid.ttrp = ts - self.trial_start_ts
-            wid.went = self.went = True
-            self.reward = wid.rewarded = True
-            self.iti = wid.iti = verify.base_iti[block.count]
-            wid.passed = self.passed = True
-            self.total_pass += 1
-            blocks = App.get_running_app().prediction_container.children
-            trials = blocks[len(blocks) - block.count - 1].children
-            predict = trials[len(trials) - trial.count - 1]
-            predict.outcome = True
-            predict.outcome_text = 'PASS'
-            return
+        side = self.side
+        wfnp = verify.wait_for_nose_poke[block]
 
-        reward, iti = verify.compute_reward(block.count, trial.count,
-                                            not timed_out)
-
+        self.reward_entry_timed_out = timed_out
         if not timed_out:
-            ts = self.reward_entery_ts = clock()
-            wid.ttrp = ts - self.nose_poke_exit_ts
-        wid.went = self.went = not timed_out
-        self.reward = wid.rewarded = reward
-        self.iti = wid.iti = iti
-        passed = wid.passed = self.passed = \
-            not timed_out and self.is_go or not self.is_go and timed_out
+            predict.side_went = wid.side_went = side_went = self.side_went = \
+                'r' if r else 'l'
+            wid.ttrp = ts - (self.nose_poke_exit_ts if self.nose_poke_exit_ts
+                             is not None else self.trial_start_ts)
+            App.get_running_app().plots[2].points.append((self.trial.count,
+                                                          wid.ttrp))
 
-        if self.passed:
+
+        reward = not timed_out and (not wfnp or (
+            side == 'rl' or side == side_went) and random() <= self.odor[1])
+        predict.outcome = wid.passed = passed = not timed_out and (
+            not wfnp or (side == 'rl' or side == side_went))
+        self.outcomes.append(int(predict.outcome))
+
+        wid.iti = self.iti = (
+            verify.good_iti[block] if passed else verify.bad_iti[block])
+        self.reward_side = reward and ('feeder_' + side_went)
+        if reward:
+            predict.side_rewarded = wid.rewarded = side_went
+        self.outcome = 'pass' if passed else 'fail'
+
+        if passed:
             self.total_pass += 1
+            predict.outcome_text = 'PASS'
         else:
             self.total_fail += 1
-        blocks = App.get_running_app().prediction_container.children
-        trials = blocks[len(blocks) - block.count - 1].children
-        predict = trials[len(trials) - trial.count - 1]
-        predict.outcome = passed
-        predict.outcome_text = 'PASS' if passed else 'FAIL'
+            predict.outcome_text = 'FAIL'
 
     def post_trial(self):
         '''Executed after each trial. '''
         fname = strftime(self.log_filename.format(**{'trial': self.trial.count,
             'block': self.block.count, 'animal': self.animal_id}))
         filename = self._filename
+        o = self.outcomes[-self.filter_len:]
+        App.get_running_app().plots[3].points.append((
+            self.trial.count, sum(o) / max(1., float(len(o))) * 100))
 
         if filename != fname:
             if not fname:
@@ -816,20 +1066,29 @@ class AnimalStage(MoaStage):
             if fd is not None:
                 fd.close()
             fd = self._fd = open(fname, 'a')
-            fd.write('time,ID,block,trial,ttnp,tinp,ttrp,odor,is_go,went,'
-                     'incomplete,passed,rewarded,iti\n')
+            fd.write('Date,Time,RatID,Block,Trial,OdorName, OdorIndex,'
+                     'TrialSide,SideWent,Outcome,Rewarded?,TTNP,TINP,TTRP,'
+                     'ITI\n')
             self._filename = fname
         elif not filename:
             return
         else:
             fd = self._fd
 
-        wid = self.outcome_wid
-        vals = [strftime('log_{animal}_%m-%d-%y'),
-                "'{}'".format(self.animal_id), self.block.count,
-                self.trial.count, wid.ttnp, wid.tinp, wid.ttrp, self.odor,
-                self.is_go, self.went, self.incomplete, self.passed,
-                self.reward, self.iti]
+        ts = self.trial_start_ts
+        np = self.nose_poke_ts
+        ne = self.nose_poke_exit_ts
+        rp = self.reward_entry_ts
+
+        odor_idx = self.odor[0]
+        outcome = {'fail': 0, 'pass': 1, 'inc': 2, None: None}
+        vals = [strftime('%m-%d-%Y'), self.trial_start_time, self.animal_id,
+                self.block.count, self.trial.count,
+                self.verify.odor_names[odor_idx], 'p{}'.format(odor_idx),
+                self.side, self.side_went, outcome[self.outcome],
+                bool(self.reward_side), (np - ts) if np else None,
+                (ne - np) if ne and np else None,
+                (rp - (ne if ne else ts)) if rp else None, self.iti]
         for i, val in enumerate(vals):
             if val is None:
                 vals[i] = ''

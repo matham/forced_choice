@@ -1,8 +1,11 @@
 #:kivy 1.8.1
 #:import Factory kivy.factory.Factory
+#:import rgb kivy.utils.get_color_from_hex
 
 
+# the root level widget
 <MainView>:
+    padding: 20
     ScrollView:
         scroll_type: ['bars']
         bar_width: 10
@@ -12,8 +15,48 @@
             size: self.minimum_size
             padding: [40]
             ExperimentView
+    GridLayout:
+        id: graphs
+        size_hint_x: None
+        width: self.minimum_width
+        cols: 2
+        padding: [20]
+        spacing: [30]
+        TrialGraph:
+            id: ttnp
+            ylabel: 'TTNP'
+            ymax: 5
+        TrialGraph:
+            id: tinp
+            ylabel: 'TINP'
+            ymax: 5
+        TrialGraph:
+            id: ttrp
+            ylabel: 'TTRP'
+            ymax: 6
+        TrialGraph:
+            id: outcome
+            ylabel: 'Outcome'
 
 
+<TrialGraph@Graph>:
+    xmax: max(1, app.base_stage.animal_stage.num_trials if app.base_stage else self.xmax)
+    xlabel: 'Trial'
+    size_hint_x: None
+    width: 300
+    label_options: {'color': rgb('444444'), 'bold': True}
+    background_color: rgb('000000')
+    tick_color: rgb('808080')
+    border_color: rgb('808080')
+    x_grid: True
+    y_grid: True
+    x_grid_label: True
+    y_grid_label: True
+    x_ticks_minor: 10
+    x_ticks_major: 25
+
+
+# a icon widget with a label
 <LabeledIcon@Widget>
     size_hint: None, None
     size: max(self.icon_size[0], self.max_width), self.icon_size[1] + self.text_height
@@ -35,6 +78,7 @@
     Label:
         pos: root.pos
         text: root.text
+        markup: True
         size: root.width, root.text_height
         text_size: self.size
         valign: 'top'
@@ -42,18 +86,17 @@
         strip: True
         font_size: '11dp'
 
+# various button/switch widgets
 <SwitchIcon@ToggleButtonBehavior+LabeledIcon>
 <PressIcon@ButtonBehavior+LabeledIcon>
 
-<OdorSwitch>:
-    disabled: app.app_state == 'clear' or app.app_state == 'exception' or not self.odor_dev
-    odor_dev: app.base_stage and app.base_stage.barst.odor_dev
-    idx: 0
-    has_odor: bool(app.base_stage) and len(app.base_stage.verify.odors) > self.idx
-    has_go: bool(self.has_odor and app.base_stage.verify.odors[self.idx][1])
-    text: ('{} - {}'.format(*app.base_stage.verify.odors[self.idx]) if self.has_go else '{}'.format(app.base_stage.verify.odors[self.idx][0])) if self.has_odor else ''
-    on_state: if not app.simulate: app.set_dev_state(self.state, self.odor_dev, 'p{}'.format(self.idx))
-    halign: 'left'
+<DeviceSwitch>:
+    disabled: app.app_state == 'clear' or app.app_state == 'exception' or not self.dev
+    text_height: 50
+    halign: 'center'
+
+<OdorSwitch@DeviceSwitch>:
+    dev: app.base_stage and app.base_stage.barst.odor_dev
 
 <OdorDarkSwitch@OdorSwitch>
     canvas.before:
@@ -63,115 +106,99 @@
             size: self.size
             pos: self.pos
 
+# holds the simulation devices
 <SimulatedDevices>:
     cols: 1
     size_hint: None, None
     size: self.minimum_size
     on_parent: app.simulation_devices = self
-    pin_dev: app.base_stage and app.base_stage.barst.pin_dev
-    odor_dev: app.base_stage and app.base_stage.barst.odor_dev
     daq_in_dev: app.base_stage and app.base_stage.barst.daq_in_dev
     daq_out_dev: app.base_stage and app.base_stage.barst.daq_out_dev
-    GridLayout:
-        id: odors1
+    sound_r_dev: app.base_stage and app.base_stage.barst.sound_r
+    sound_l_dev: app.base_stage and app.base_stage.barst.sound_l
+    OdorContainer:
+        id: odors
         size_hint: None, None
         size: self.minimum_size
-        rows: 1
+        cols: 8
         spacing: [10, 0]
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p0)
-            idx: 0
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p1)
-            idx: 1
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p2)
-            idx: 2
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p3)
-            idx: 3
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p4)
-            idx: 4
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p5)
-            idx: 5
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p6)
-            idx: 6
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p7)
-            idx: 7
-    GridLayout:
-        id: odors2
-        size_hint: None, None
-        size: self.minimum_size
-        rows: 1
-        spacing: [10, 0]
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p8)
-            idx: 8
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p9)
-            idx: 9
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p10)
-            idx: 10
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p11)
-            idx: 11
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p12)
-            idx: 12
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p13)
-            idx: 13
-        OdorDarkSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p14)
-            idx: 14
-        OdorSwitch:
-            state: app.compute_simulated_state(getattr(self, 'state'), root.odor_dev and root.odor_dev.p15)
-            idx: 15
+    Widget:
+        size_hint_y: None
+        height: 20
     GridLayout:
         size_hint: None, None
         size: self.minimum_size
-        rows: 1
+        cols: 8
         spacing: [10, 0]
-        SwitchIcon:
-            id: pump
-            text: 'Pump'
-            text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.pin_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), root.pin_dev and root.pin_dev.pump)
-            on_state: if not app.simulate: app.set_dev_state(self.state, root.pin_dev, 'pump')
-        SwitchIcon:
+        DeviceSwitch:
             id: house_light
             text: 'House light'
-            text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.house_light)
-            on_state: if not app.simulate: app.set_dev_state(self.state, root.daq_out_dev, 'house_light')
-        SwitchIcon:
-            id: stress_light
-            text: 'Stress light'
-            text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_out_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_out_dev and root.daq_out_dev.stress_light)
-            on_state: if not app.simulate: app.set_dev_state(self.state, root.daq_out_dev, 'stress_light')
-        SwitchIcon:
+            dev: root.daq_out_dev
+            channel: 'house_light'
+        DeviceSwitch:
             id: nose_beam
             text: 'Nose beam'
-            text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_in_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_in_dev and root.daq_in_dev.nose_beam)
-            #on_state: if app.simulate: app.set_dev_state(self.state, root.daq_in_dev, 'nose_beam')
-        SwitchIcon:
+            dev: root.daq_in_dev
+            channel: 'nose_beam'
+            input: True
+        DeviceSwitch:
+            id: sound_l
+            text: 'L-sound'
+            dev: root.sound_l_dev
+            channel: 'state'
+            virtual: True
+            multichannel: False
+            background_down: 'light-blue-led-on-th.png'
+            background_normal: 'light-blue-led-off-th.png'
+        DeviceSwitch:
+            id: reward_beam_l
+            text: 'L-beam'
+            dev: root.daq_in_dev
+            channel: 'reward_beam_l'
+            input: True
+            background_down: 'light-blue-led-on-th.png'
+            background_normal: 'light-blue-led-off-th.png'
+        DeviceSwitch:
+            id: feeder_l
+            text: 'L-feeder'
+            dev: root.daq_out_dev
+            channel: 'feeder_l'
+            background_down: 'light-blue-led-on-th.png'
+            background_normal: 'light-blue-led-off-th.png'
+        DeviceSwitch:
+            id: sound_r
+            text: 'R-sound'
+            dev: root.sound_r_dev
+            channel: 'state'
+            virtual: True
+            multichannel: False
+            background_down: 'purple-led-on-th.png'
+            background_normal: 'purple-led-off-th.png'
+        DeviceSwitch:
             id: reward_beam_r
-            text: 'R-reward beam'
-            text_height: 30
-            disabled: app.app_state == 'clear' or app.app_state == 'exception' or not root.daq_in_dev
-            state: app.compute_simulated_state(getattr(self, 'state'), root.daq_in_dev and root.daq_in_dev.reward_beam_r)
-            #on_state: if app.simulate: app.set_dev_state(self.state, root.daq_in_dev, 'reward_beam_r')
+            text: 'R-beam'
+            dev: root.daq_in_dev
+            channel: 'reward_beam_r'
+            input: True
+            background_down: 'purple-led-on-th.png'
+            background_normal: 'purple-led-off-th.png'
+        DeviceSwitch:
+            id: feeder_r
+            text: 'R-feeder'
+            dev: root.daq_out_dev
+            channel: 'feeder_r'
+            background_down: 'purple-led-on-th.png'
+            background_normal: 'purple-led-off-th.png'
+        DeviceSwitch:
+            id: ir_leds
+            text: 'IR'
+            dev: root.daq_out_dev
+            channel: 'ir_leds'
+        DeviceSwitch:
+            id: fans
+            text: 'Fans'
+            dev: root.daq_out_dev
+            channel: 'fans'
         Widget:
             size_hint: None, None
             size: 30, simulate.height
@@ -185,6 +212,7 @@
             on_state: app.simulate = self.state == 'down'
 
 
+# a formatted label of header and single line value
 <ResultsLabel@Label>:
     markup: True
     size_hint: None, None
@@ -197,6 +225,8 @@
     strip: True
     halign: 'center'
 
+
+# holds the outcome of the last few trials
 <TrialOutcome>:
     size_hint: None, None
     size: self.minimum_size
@@ -234,13 +264,13 @@
         color_str: 'CC6600'
         value: '{:.4f}'.format(root.ttrp) if root.ttrp is not None else ''
     ResultsLabel:
-        title: 'Go?'
+        title: 'Side'
         color_str: 'CC6600'
-        value: ('Yes' if root.is_go else 'No') if root.is_go is not None else ''
+        value: str.upper(root.side) if type(root.side) is str else unicode.upper(root.side)
     ResultsLabel:
-        title: 'Went?'
+        title: 'Side went'
         color_str: 'CC6600'
-        value: ('Yes' if root.went else 'No') if root.went is not None else ''
+        value: str.upper(root.side_went)
     ResultsLabel:
         title: 'Outcome'
         color_str: '33CC33' if root.passed else 'ff2222'
@@ -248,7 +278,7 @@
     ResultsLabel:
         title: 'Rewarded?'
         color_str: 'CC6600'
-        value: ('Yes' if root.rewarded else 'No') if root.rewarded is not None else ''
+        value: str.upper(root.rewarded)
     ResultsLabel:
         title: 'ITI'
         color_str: 'CC6600'
@@ -281,16 +311,15 @@
             TrialOutcome
 
 
+# section holds the experiment schedule for this animal
 <TrialPrediction>:
     markup: True
     size_hint: None, None
     size: self.texture_size[0] + 16, self.texture_size[1] + 16
     line_height: 1.3
     outcome_color: '33CC33' if self.outcome else 'ff2222'
-    go_color: '7BE319' if self.go else 'EB0E8F'
-    go_text: 'GO' if self.go else 'NOGO'
     color: (.8, .4, 0, 1)
-    text: '[size=15]{}: {}[/size]\n[size=13][color={}]{}[/color] - [color={}]{}[/color][/size]'.format(self.trial, self.odor, self.go_color, self.go_text, self.outcome_color, self.outcome_text)
+    text: u'[size=15]{}: {}[/size]\n[size=15]{} : {} : {}{}[color={}]{}[/color][/size]'.format(self.trial, self.odor, self.side, self.side_went, self.side_rewarded, ' = ' if self.outcome_text else '', self.outcome_color, self.outcome_text)
     strip: True
     halign: 'center'
     canvas:
@@ -300,7 +329,6 @@
             size: self.size
             source: 'gray-frame-th.png'
 
-
 <PredictionGrid@GridLayout>:
     spacing: [5]
     padding: [5]
@@ -309,6 +337,7 @@
     rows: 1
 
 
+# the experiment status
 <ExperimentStatus@Label>:
     text_size: self.size
     valign: 'middle'
@@ -344,7 +373,7 @@
         text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{} ({})[/color]'.format(self.total_pass, self.total_fail, self.total_incomplete)
 
 
-
+# contains the experiment schedule and status
 <ExperimentView@GridLayout>:
     size_hint: None, None
     size: self.minimum_size
@@ -365,6 +394,7 @@
     SumulatedAndResults
 
 
+# controls for starting/stopping the experiment
 <StartingExperiment@GridLayout>:
     cols: 1
     size_hint: None, None
@@ -446,11 +476,11 @@
     Label:
         size_hint_x: None
         width: self.height
-        on_touch_down: self.collide_point(*args[1].pos) and (app.popup_anim.cancel(self) or setattr(self, 'warn_alpha', int(bool(app.exception_value))) or app.err_popup.open())
+        on_touch_down: app.exception_value and self.collide_point(*args[1].pos) and (app.popup_anim.cancel(self) or setattr(self, 'warn_alpha', int(bool(app.exception_value))) or app.err_popup.open())
         warn_alpha: 0.
         warn_text: app.exception_value
         on_warn_text:
-            if self.warn_text: app.popup_anim.start(self)
+            if self.warn_text and app.popup_anim: app.popup_anim.start(self)
             else: setattr(self, 'warn_alpha', 0)
         canvas:
             Color:

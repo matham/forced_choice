@@ -15,13 +15,16 @@ if not os.environ.get('SPHINX_DOC_INCLUDE', None):
     Config.set('kivy', 'exit_on_escape', 0)
     Config.set('kivy', 'multitouch_on_demand', 1)
 
-from kivy.properties import (ObjectProperty, OptionProperty,
-    ConfigParserProperty, StringProperty, BooleanProperty, NumericProperty)
+from kivy.properties import (
+    ObjectProperty, OptionProperty, ConfigParserProperty, StringProperty,
+    BooleanProperty, NumericProperty, ListProperty)
 from kivy import resources
 from kivy.modules import inspector
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.animation import Sequence, Animation
+from kivy.base import EventLoop
+from kivy.utils import get_color_from_hex as rgb
 
 from moa.app import MoaApp
 from moa.compat import unicode_type
@@ -34,6 +37,7 @@ from os.path import dirname, join, isfile
 import traceback
 import logging
 from moa.logger import Logger
+from kivy.garden.graph import Graph, MeshLinePlot
 #Logger.setLevel(logging.TRACE)
 
 
@@ -119,6 +123,8 @@ class ExperimentApp(MoaApp):
     root stage.
     '''
 
+    plots = ListProperty([])
+
     next_animal_btn = ObjectProperty(None, rebind=True)
     '''The button that is pressed when the we should do the next animal.
     '''
@@ -137,6 +143,12 @@ class ExperimentApp(MoaApp):
 
     def build(self):
         main_view = MainView()
+        ids = main_view.ids
+        colors = [rgb('7dac9f'), rgb('dc7062'), rgb('66a8d4'), rgb('e5b060')]
+        for i, g in enumerate((ids.ttnp, ids.tinp, ids.ttrp, ids.outcome)):
+            plot = MeshLinePlot(color=colors[i])
+            g.add_plot(plot)
+            self.plots.append(plot)
         self.err_popup = Factory.get('ErrorPopup')()
         self.popup_anim = Sequence(Animation(t='in_bounce', warn_alpha=1.),
                                    Animation(t='out_bounce', warn_alpha=0))
@@ -224,34 +236,6 @@ class ExperimentApp(MoaApp):
                 stage=root, dir=self.recovery_path)
         if root:
             root.stop()
-
-    def compute_simulated_state(self, sim_state, dev_state):
-        '''A convenience method which takes the state of the simulated device
-        (buttons) and the state of the actual device and returns if the
-        simulated device should be `'down'` or `'normal'`.
-
-        It is used to set the button state to match the actual device state,
-        if not simulating.
-        '''
-        if dev_state is None:
-            return sim_state
-        if (sim_state == 'down') == dev_state:
-            return sim_state
-        return 'down' if dev_state else 'normal'
-
-    def set_dev_state(self, sim_state, dev, attr):
-        '''A convenience method which takes the state of the simulated device
-        (buttons) and sets the state of the actual device to match it when not
-        simulating.
-        '''
-        if dev is not None:
-            high = []
-            low = []
-            if sim_state == 'down':
-                high = [attr]
-            else:
-                low = [attr]
-            dev.set_state(high=high, low=low)
 
 
 def run_app():

@@ -1,10 +1,8 @@
 #:kivy 1.8.1
-#:import clock time.clock
 
 
 <RootStage>:
     name: 'Root_stage'
-    completion_list: self.stages
     barst: barst
     block: block
     verify: verify
@@ -22,7 +20,9 @@
         block: block
         verify: verify
         trial: trial
+        basrt: barst
         animal_id: app.next_animal_btn.button.animal_id
+        on_started: if self.started: animal_stage.initialize_box()
         DigitalGateStage:
             name: 'rat_wait'
             device: app.next_animal_btn
@@ -30,6 +30,7 @@
             on_started: if self.started: app.exp_status = 2
         VerifyConfigStage:
             id: verify
+            barst: barst
             on_parent: app.verify_stage = self
             on_finished: if self.finished: animal_stage.post_verify()
         MoaStage:
@@ -41,59 +42,96 @@
                 id: trial
                 repeat: verify.num_trials[block.count]
                 on_started: if self.started: animal_stage.pre_block()
+                Delay:
+                    name: 'odor_mix'
+                    delay: verify.mix_dur
+                    disabled: not verify.wait_for_nose_poke[block.count]
+                    on_started: if self.started: animal_stage.start_mixing()
                 DigitalGateStage:
                     name: 'house_light_on'
                     device: barst.daq_out_dev
                     exit_state: True
                     state_attr: 'house_light'
-                    on_started:
-                        if self.started: animal_stage.pre_trial()
-                        if self.started and barst.daq_out_dev: barst.daq_out_dev.set_state(high=['house_light'])
-                        if self.started and barst.pin_dev: barst.pin_dev.set_state(high=['pump'])
+                    on_started: if self.started: barst.daq_out_dev.set_state(high=['house_light'])
+                    on_finished: if self.finished: animal_stage.pre_trial()
                 DigitalGateStage:
                     name: 'nose_poke_wait'
-                    disabled: not animal_stage.wait_for_nose_poke
+                    disabled: not verify.wait_for_nose_poke[block.count]
                     device: barst.daq_in_dev
                     exit_state: True
                     state_attr: 'nose_beam'
                     on_started: if self.started: app.exp_status = 3
                     on_finished: if self.finished: animal_stage.do_nose_poke()
                 DigitalGateStage:
-                    name: 'odor_start'
-                    disabled: not animal_stage.wait_for_nose_poke
-                    device: barst.odor_dev
-                    exit_state: True
-                    state_attr: str(verify.odor_NO[block.count])
-                    on_started:
-                        if self.started: barst.odor_dev.set_state(high=[verify.odor_NO[block.count], animal_stage.odor])
-                DigitalGateStage:
                     name: 'wait_nose_poke_exit'
-                    disabled: not animal_stage.wait_for_nose_poke
+                    disabled: not verify.wait_for_nose_poke[block.count]
                     device: barst.daq_in_dev
                     exit_state: False
                     state_attr: 'nose_beam'
                     max_duration: verify.max_nose_poke[block.count]
-                    on_finished:
-                        if self.finished: barst.odor_dev.set_state(low=[verify.odor_NO[block.count], animal_stage.odor])
-                        if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
+                    on_finished: if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
                     on_started: if self.started: app.exp_status = 4
-                DigitalGateStage:
+                    completion_list: [self]
+                    Delay:
+                        name: 'odor_delay'
+                        delay: verify.odor_delay[block.count]
+                        on_finished: if self.finished: animal_stage.do_odor_release()
+                    Delay:
+                        id: min_nose_poke
+                        delay: verify.min_nose_poke[block.count]
+                        disabled: not verify.min_nose_poke[block.count]
+                    Delay:
+                        delay_type: 'random'
+                        max: verify.sound_cue_delay[block.count]
+                        disabled: not verify.sound_cue_delay[block.count]
+                    Delay:
+                        delay: verify.sound_dur[block.count]
+                        disabled: animal_stage.sound is None
+                        on_started: if self.started: animal_stage.sound.set_state(True)
+                        on_finished: if self.finished: animal_stage.sound.set_state(False)
+                MoaStage:
                     name: 'decision_stage'
-                    disabled: animal_stage.incomplete
-                    device: barst.daq_in_dev
-                    exit_state: True
-                    state_attr: 'reward_beam_r'
-                    max_duration: verify.decision_duration[block.count]
-                    on_finished: if self.finished: animal_stage.do_decision(self.timed_out)
+                    disabled: animal_stage.reward_side is False
+                    max_duration: verify.max_decision_duration[block.count]
+                    on_finished: if self.finished: animal_stage.do_decision(not reward_entry_r.stopped, not reward_entry_l.stopped, self.timed_out)
                     on_started: if self.started: app.exp_status = 5
-                Delay:
-                    disabled: not animal_stage.reward
+                    completion_type: 'any'
+                    order: 'parallel'
+                    completion_list: [self, reward_entry_r, reward_entry_l]
+                    DigitalGateStage
+                        id: reward_entry_r
+                        device: barst.daq_in_dev
+                        exit_state: True
+                        state_attr: 'reward_beam_r'
+                    DigitalGateStage
+                        id: reward_entry_l
+                        device: barst.daq_in_dev
+                        exit_state: True
+                        state_attr: 'reward_beam_l'
+                        on_started: if self.started: 10
+                MoaStage:
+                    repeat: verify.num_pellets[block.count]
+                    disabled: animal_stage.reward_side is False
                     name: 'reward_stage'
-                    delay: .1
-                    on_finished: if self.finished and barst.pin_dev: barst.pin_dev.set_state(low=['pump'])
+                    id: reward_stage
+                    Delay:
+                        disabled: not reward_stage.count
+                        delay: 0.9
+                    DigitalGateStage:
+                        device: barst.daq_out_dev
+                        exit_state: True
+                        state_attr: '' if not animal_stage.reward_side else animal_stage.reward_side
+                        on_started: if self.started: barst.daq_out_dev.set_state(high=[animal_stage.reward_side])
+                    Delay:
+                        delay: 0.01
+                    DigitalGateStage:
+                        device: barst.daq_out_dev
+                        exit_state: False
+                        state_attr: '' if not animal_stage.reward_side else animal_stage.reward_side
+                        on_started: if self.started: barst.daq_out_dev.set_state(low=[animal_stage.reward_side])
                 Delay:
                     name: 'iti'
-                    delay: animal_stage.iti
-                    on_started: if self.started and barst.daq_out_dev: barst.daq_out_dev.set_state(low=['house_light'])
+                    delay: max(animal_stage.iti - verify.mix_dur, 0)
+                    on_started: if self.started: barst.daq_out_dev.set_state(low=['house_light'])
                     on_started: if self.started: app.exp_status = 6
                     on_finished: if self.finished: animal_stage.post_trial()
