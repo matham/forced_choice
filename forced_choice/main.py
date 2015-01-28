@@ -6,11 +6,7 @@ __all__ = ('ExperimentApp', 'run_app')
 # TODO: fix restart
 
 import os
-from moa.clock import MoaClockBase
-from kivy.context import register_context
-import kivy
 if not os.environ.get('SPHINX_DOC_INCLUDE', None):
-    kivy.clock.Clock = register_context('Clock', MoaClockBase)
     from kivy.config import Config
     Config.set('kivy', 'exit_on_escape', 0)
     Config.set('kivy', 'multitouch_on_demand', 1)
