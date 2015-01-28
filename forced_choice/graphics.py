@@ -26,8 +26,8 @@ class DeviceSwitch(Factory.get('SwitchIcon')):
         Clock.schedule_once(self._bind_button)
 
     def _bind_button(self, *largs):
-        if (not self.input and not App.get_running_app().simulate and
-                not self.virtual):
+        if (not self.input and not App.get_running_app().simulate
+            and not self.virtual):
             self.bind(state=self.update_from_button)
 
     dev = ObjectProperty(None, allownone=True)
@@ -45,6 +45,8 @@ class DeviceSwitch(Factory.get('SwitchIcon')):
 
     multichannel = BooleanProperty(True)
 
+    _last_chan_value = None
+
     def on_dev(self, *largs):
         if self._dev:
             self._dev.unbind(**{self.channel: self.update_from_channel})
@@ -61,7 +63,10 @@ class DeviceSwitch(Factory.get('SwitchIcon')):
         It is used to set the button state to match the actual device state,
         if not simulating.
         '''
-        self.state = 'down' if getattr(self.dev, self.channel) else 'normal'
+
+        self._last_chan_value = state = getattr(self.dev, self.channel)
+        self.state = 'down' if state else 'normal'
+        self._last_chan_value = None
 
     def update_from_button(self, *largs):
         '''A convenience method which takes the state of the simulated device
@@ -70,13 +75,20 @@ class DeviceSwitch(Factory.get('SwitchIcon')):
         '''
         dev = self.dev
         if dev is not None:
-            if self.multichannel:
-                if self.state == 'down':
-                    dev.set_state(high=[self.channel])
-                else:
-                    dev.set_state(low=[self.channel])
+            if self.state == 'down':
+                if self._last_chan_value is not True:
+                    self._last_chan_value = None
+                    if self.multichannel:
+                        dev.set_state(high=[self.channel])
+                    else:
+                        dev.set_state(True)
             else:
-                dev.set_state(self.state == 'down')
+                if self._last_chan_value is not False:
+                    self._last_chan_value = None
+                    if self.multichannel:
+                        dev.set_state(low=[self.channel])
+                    else:
+                        dev.set_state(False)
 
 
 class OdorContainer(GridLayout):

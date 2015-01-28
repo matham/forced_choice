@@ -209,7 +209,7 @@ class ExperimentApp(MoaApp):
             return
 
         if restart and isfile(self.recovery_file):
-            self.recover_state(self.recovery_file, stage=root)
+            self.load_attributes(self.recovery_file, stage=root)
         root.step_stage()
 
     def device_exception(self, exception, *largs):

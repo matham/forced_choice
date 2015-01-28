@@ -276,8 +276,8 @@ class FTDIOdors(FTDIOdorsBase, DeviceStageInterface, FTDISerializerDevice):
     '''
 
     def __init__(self, **kwargs):
-        mapping = {'p{}'.format(i): i for i in range(8 * self.num_boards)}
-        super(FTDIOdors, self).__init__(mapping=mapping, **kwargs)
+        attr_map = {'p{}'.format(i): i for i in range(8 * self.num_boards)}
+        super(FTDIOdors, self).__init__(attr_map=attr_map, **kwargs)
 
     def get_settings(self):
         '''Returns the :class:`SerializerSettings` instance used to create the
@@ -343,10 +343,10 @@ class DAQInDevice(DAQInDeviceBase, DeviceStageInterface, MCDAQDevice):
     '''
 
     def __init__(self, **kwargs):
-        mapping = {'nose_beam': self.nose_beam_pin,
+        attr_map = {'nose_beam': self.nose_beam_pin,
                    'reward_beam_r': self.reward_beam_r_pin,
                    'reward_beam_l': self.reward_beam_l_pin}
-        super(DAQInDevice, self).__init__(mapping=mapping, input=True,
+        super(DAQInDevice, self).__init__(attr_map=attr_map, direction='i',
                                           **kwargs)
 
     def create_device(self, server):
@@ -436,12 +436,13 @@ class DAQOutDevice(DAQOutDeviceBase, DeviceStageInterface, MCDAQDevice):
     '''
 
     def __init__(self, **kwargs):
-        mapping = {'house_light': self.house_light_pin,
+        attr_map = {'house_light': self.house_light_pin,
                    'ir_leds': self.ir_leds_pin,
                    'fans': self.fans_pin,
                    'feeder_r': self.feeder_r_pin,
                    'feeder_l': self.feeder_l_pin}
-        super(DAQOutDevice, self).__init__(mapping=mapping, **kwargs)
+        super(DAQOutDevice, self).__init__(attr_map=attr_map, direction='o',
+                                           **kwargs)
 
     def create_device(self, server):
         '''See :meth:`DeviceStageInterface.create_device`.

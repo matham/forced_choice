@@ -15,7 +15,7 @@ from ffpyplayer.player import MediaPlayer
 
 from moa.stage import MoaStage
 from moa.threads import ScheduledEventLoop
-from moa.tools import ConfigPropertyList, to_bool
+from moa.utils import ConfigPropertyList, to_bool
 from moa.compat import unicode_type
 
 from kivy.app import App
@@ -189,11 +189,11 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         super(InitBarstStage, self).__init__(**kw)
         self.simulate = App.get_running_app().simulate
 
-    def recover_state(self, state):
+    def load_attributes(self, state):
         # When recovering stage, even if finished before, always redo it
         # because we need to init the Barst devices, so skip `finished`.
         state.pop('finished', None)
-        return super(InitBarstStage, self).recover_state(state)
+        return super(InitBarstStage, self).load_attributes(state)
 
     def clear(self, *largs, **kwargs):
         self._finished_init = False
@@ -263,15 +263,15 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         ids = app.simulation_devices.ids
         odors = ids.odors.children
         N = len(odors)
-        self.odor_dev = FTDIOdorsSim(mapping={
+        self.odor_dev = FTDIOdorsSim(attr_map={
             'p{}'.format(i): odors[N - i - 1].__self__ for i in range(N)})
 
         daqout = ['ir_leds', 'fans', 'house_light', 'feeder_l', 'feeder_r']
         daqin = ['nose_beam', 'reward_beam_l', 'reward_beam_r']
         self.daq_in_dev = DAQInDeviceSim(
-            mapping={k: ids[k].__self__ for k in daqin})
+            attr_map={k: ids[k].__self__ for k in daqin})
         self.daq_out_dev = DAQOutDeviceSim(
-            mapping={k: ids[k].__self__ for k in daqout})
+            attr_map={k: ids[k].__self__ for k in daqout})
 
         if self.use_mfc:
             mfc = self.mfc = MassFlowControllerSim(
@@ -379,9 +379,9 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         f = []
         append = f.append
         if daq_out_dev is not None:
-            mapping = daq_out_dev.mapping
+            attr_map = daq_out_dev.attr_map
             mask = 0
-            for val in mapping.values():
+            for val in attr_map.values():
                 mask |= 1 << val
             append(partial(daq_out_dev.target.write, mask=mask, value=0))
 
@@ -415,9 +415,9 @@ class VerifyConfigStage(MoaStage):
     :meth:`ExperimentApp.device_exception` with the exception.
     '''
 
-    def recover_state(self, state):
+    def load_attributes(self, state):
         state.pop('finished', None)
-        return super(InitBarstStage, self).recover_state(state)
+        return super(InitBarstStage, self).load_attributes(state)
 
     def step_stage(self, *largs, **kwargs):
         if not super(VerifyConfigStage, self).step_stage(*largs, **kwargs):
@@ -460,6 +460,8 @@ class VerifyConfigStage(MoaStage):
         odor_path = resources.resource_find(self.odor_path)
         with open(odor_path, 'rb') as fh:
             for row in csv.reader(fh):
+                if not row.strip():
+                    continue
                 row = [elem.strip() for elem in row]
                 if use_mfc:
                     i, name, side, mfc = row[:4]
@@ -864,9 +866,9 @@ class AnimalStage(MoaStage):
     filter_len = ConfigParserProperty(1, 'Experiment', 'filter_len',
                                       exp_config_name, val_type=int)
 
-    def recover_state(self, state):
+    def load_attributes(self, state):
         state.pop('finished', None)
-        return super(AnimalStage, self).recover_state(state)
+        return super(AnimalStage, self).load_attributes(state)
 
     def post_verify(self):
         '''Executed after the :class:`VerifyConfigStage` stage finishes. '''
@@ -987,7 +989,7 @@ class AnimalStage(MoaStage):
 
         self.nose_poke_exit_timed_out = timed_out
         wid = self.outcome_wid
-        tinp = wid.tinp = te - self.odor_start_ts
+        tinp = wid.tinp = te - self.nose_poke_ts
         App.get_running_app().plots[1].points.append((self.trial.count, tinp))
 
         if not timed_out:
