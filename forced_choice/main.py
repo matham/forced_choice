@@ -6,6 +6,7 @@ __all__ = ('ExperimentApp', 'run_app')
 # TODO: fix restart
 
 import os
+import moa
 if not os.environ.get('SPHINX_DOC_INCLUDE', None):
     from kivy.config import Config
     Config.set('kivy', 'exit_on_escape', 0)

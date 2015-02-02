@@ -56,49 +56,19 @@
     x_ticks_major: 25
 
 
-# a icon widget with a label
-<LabeledIcon@Widget>
-    size_hint: None, None
-    size: max(self.icon_size[0], self.max_width), self.icon_size[1] + self.text_height
-    text: ''
-    max_width: 50
-    text_height: 62
-    background_down: 'green-led-on-th.png'
-    background_normal: 'green-led-off-th.png'
-    icon_size: 38, 38
-    halign: 'center'
-    canvas:
-        Color:
-            rgb: (1, 1, 1)
-            a: .5 if self.disabled else 1
-        Rectangle:
-            size: root.icon_size
-            pos: self.x + self.width / 2. - self.icon_size[0] / 2., self.top - self.icon_size[1]
-            source: self.background_normal if self.state == 'normal' else self.background_down
-    Label:
-        pos: root.pos
-        text: root.text
-        markup: True
-        size: root.width, root.text_height
-        text_size: self.size
-        valign: 'top'
-        halign: root.halign
-        strip: True
-        font_size: '11dp'
-
 # various button/switch widgets
 <SwitchIcon@ToggleButtonBehavior+LabeledIcon>
 <PressIcon@ButtonBehavior+LabeledIcon>
 
-<DeviceSwitch>:
+<ToggleSwitch>:
     disabled: app.app_state == 'clear' or app.app_state == 'exception' or not self.dev
     text_height: 50
     halign: 'center'
 
-<OdorSwitch@DeviceSwitch>:
+<PortSwitch>:
     dev: app.base_stage and app.base_stage.barst.odor_dev
 
-<OdorDarkSwitch@OdorSwitch>
+<DarkPortSwitch>
     canvas.before:
         Color:
             rgba: [0.5, 0.5, 0.5, 0.08]
@@ -116,8 +86,9 @@
     daq_out_dev: app.base_stage and app.base_stage.barst.daq_out_dev
     sound_r_dev: app.base_stage and app.base_stage.barst.sound_r
     sound_l_dev: app.base_stage and app.base_stage.barst.sound_l
-    OdorContainer:
+    PortContainer:
         id: odors
+        num_devs: 16
         size_hint: None, None
         size: self.minimum_size
         cols: 8
@@ -130,75 +101,83 @@
         size: self.minimum_size
         cols: 8
         spacing: [10, 0]
-        DeviceSwitch:
+        ToggleSwitch:
             id: house_light
             text: 'House light'
             dev: root.daq_out_dev
-            channel: 'house_light'
-        DeviceSwitch:
+            chan_name: 'house_light'
+            virtual: app.simulate
+        ToggleSwitch:
             id: nose_beam
             text: 'Nose beam'
             dev: root.daq_in_dev
-            channel: 'nose_beam'
-            input: True
-        DeviceSwitch:
+            chan_name: 'nose_beam'
+            read_only: True
+            virtual: app.simulate
+        ToggleSwitch:
             id: sound_l
             text: 'L-sound'
             dev: root.sound_l_dev
-            channel: 'state'
+            chan_name: 'state'
             virtual: True
-            multichannel: False
+            is_port: False
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        DeviceSwitch:
+        ToggleSwitch:
             id: reward_beam_l
             text: 'L-beam'
             dev: root.daq_in_dev
-            channel: 'reward_beam_l'
-            input: True
+            chan_name: 'reward_beam_l'
+            read_only: True
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        DeviceSwitch:
+            virtual: app.simulate
+        ToggleSwitch:
             id: feeder_l
             text: 'L-feeder'
             dev: root.daq_out_dev
-            channel: 'feeder_l'
+            chan_name: 'feeder_l'
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        DeviceSwitch:
+            virtual: app.simulate
+        ToggleSwitch:
             id: sound_r
             text: 'R-sound'
             dev: root.sound_r_dev
-            channel: 'state'
+            chan_name: 'state'
             virtual: True
-            multichannel: False
+            is_port: False
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        DeviceSwitch:
+        ToggleSwitch:
             id: reward_beam_r
             text: 'R-beam'
             dev: root.daq_in_dev
-            channel: 'reward_beam_r'
-            input: True
+            chan_name: 'reward_beam_r'
+            read_only: True
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        DeviceSwitch:
+            virtual: app.simulate
+        ToggleSwitch:
             id: feeder_r
             text: 'R-feeder'
             dev: root.daq_out_dev
-            channel: 'feeder_r'
+            chan_name: 'feeder_r'
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        DeviceSwitch:
+            virtual: app.simulate
+        ToggleSwitch:
             id: ir_leds
             text: 'IR'
             dev: root.daq_out_dev
-            channel: 'ir_leds'
-        DeviceSwitch:
+            chan_name: 'ir_leds'
+            virtual: app.simulate
+        ToggleSwitch:
             id: fans
             text: 'Fans'
             dev: root.daq_out_dev
-            channel: 'fans'
+            chan_name: 'fans'
+            virtual: app.simulate
         Widget:
             size_hint: None, None
             size: 30, simulate.height
