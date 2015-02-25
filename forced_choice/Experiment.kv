@@ -1,47 +1,42 @@
 #:kivy 1.8.1
 
 
-<RootStage>:
-    name: 'Root_stage'
-    barst: barst
-    block: block
-    verify: verify
-    animal_stage: animal_stage
-    on_started: app.exp_status = 0
+<RootStage@MoaStage>:
+    on_finished: if self.finished: barst.stop_devices()
+    on_finished: if self.finished: app.timer.set_active_slice('Done')
     InitBarstStage:
         id: barst
-        root: root
         name: 'barst'
-        on_started: if self.started: app.exp_status = 1
+        on_started: if self.started: app.timer.set_active_slice('Init')
     AnimalStage:
-        name: 'rat_loop'
+        name: 'animal_stage'
         repeat: -1
         id: animal_stage
-        block: block
-        verify: verify
-        trial: trial
-        basrt: barst
-        animal_id: app.next_animal_btn.button.animal_id
+        animal_id: app.next_animal_btn.animal_id
         on_started: if self.started: animal_stage.initialize_box()
         DigitalGateStage:
             name: 'rat_wait'
-            device: app.next_animal_btn
+            device: barst.next_animal_dev
             exit_state: True
-            on_started: if self.started: app.exp_status = 2
+            on_started: if self.started: app.timer.set_active_slice('Ready')
         VerifyConfigStage:
             id: verify
-            barst: barst
-            on_parent: app.verify_stage = self
+            name: 'verify'
             on_finished: if self.finished: animal_stage.post_verify()
         MoaStage:
             name: 'block'
             id: block
             repeat: verify.num_blocks
+            on_started: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(self.count, trial.count))
+            on_count: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(self.count, trial.count))
             MoaStage:
-                name: 'trials'
+                name: 'trial'
                 id: trial
                 repeat: verify.num_trials[block.count]
                 on_started: if self.started: animal_stage.pre_block()
+                on_count: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(block.count, self.count))
+                on_started: app.timer.update_slice_attrs('NP', duration=verify.max_nose_poke[self.count])
+                on_started: app.timer.update_slice_attrs('Wait HP', duration=verify.max_decision_duration[self.count])
                 Delay:
                     name: 'odor_mix'
                     delay: verify.mix_dur
@@ -60,8 +55,8 @@
                     device: barst.daq_in_dev
                     exit_state: True
                     state_attr: 'nose_beam'
-                    on_started: if self.started: app.exp_status = 3
                     on_finished: if self.finished: animal_stage.do_nose_poke()
+                    on_started: if self.started: app.timer.set_active_slice('Wait NP')
                 DigitalGateStage:
                     name: 'wait_nose_poke_exit'
                     disabled: not verify.wait_for_nose_poke[block.count]
@@ -70,8 +65,8 @@
                     state_attr: 'nose_beam'
                     max_duration: verify.max_nose_poke[block.count]
                     on_finished: if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
-                    on_started: if self.started: app.exp_status = 4
                     completion_list: [self]
+                    on_started: if self.started: app.timer.set_active_slice('NP')
                     Delay:
                         name: 'odor_delay'
                         delay: verify.odor_delay[block.count]
@@ -94,10 +89,10 @@
                     disabled: animal_stage.reward_side is False
                     max_duration: verify.max_decision_duration[block.count]
                     on_finished: if self.finished: animal_stage.do_decision(not reward_entry_r.stopped, not reward_entry_l.stopped, self.timed_out)
-                    on_started: if self.started: app.exp_status = 5
                     completion_type: 'any'
                     order: 'parallel'
                     completion_list: [self, reward_entry_r, reward_entry_l]
+                    on_started: if self.started: app.timer.set_active_slice('Wait HP')
                     DigitalGateStage
                         id: reward_entry_r
                         device: barst.daq_in_dev
@@ -114,6 +109,7 @@
                     disabled: animal_stage.reward_side is False
                     name: 'reward_stage'
                     id: reward_stage
+                    on_started: if self.started: app.timer.set_active_slice('Reward')
                     Delay:
                         disabled: not reward_stage.count
                         delay: 0.9
@@ -131,7 +127,8 @@
                         on_started: if self.started: barst.daq_out_dev.set_state(low=[animal_stage.reward_side])
                 Delay:
                     name: 'iti'
+                    on_started: if self.started: app.timer.update_slice_attrs('ITI', duration=animal_stage.iti)
                     delay: max(animal_stage.iti - verify.mix_dur, 0)
                     on_started: if self.started: barst.daq_out_dev.set_state(low=['house_light'])
-                    on_started: if self.started: app.exp_status = 6
                     on_finished: if self.finished: animal_stage.post_trial()
+                    on_started: if self.started: app.timer.set_active_slice('ITI')

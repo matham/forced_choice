@@ -10,13 +10,14 @@ from re import match, compile
 from os.path import join, isfile
 import csv
 from random import choice, randint, random
-from weakref import ref
-from ffpyplayer.player import MediaPlayer
 
 from moa.stage import MoaStage
 from moa.threads import ScheduledEventLoop
-from moa.utils import ConfigPropertyList, to_bool
+from moa.utils import ConfigPropertyList, to_bool, ConfigPropertyDict
 from moa.compat import unicode_type
+from moa.base import named_moas as moas
+from moa.device.analog import NumericPropertyChannel
+from moa.device.digital import ButtonChannel
 
 from kivy.app import App
 from kivy.properties import (
@@ -26,10 +27,14 @@ from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy import resources
 
-from forced_choice.devices import Server, FTDIDevChannel, FTDIOdors,\
-    FTDIOdorsSim, DAQInDevice, DAQInDeviceSim, DAQOutDevice, DAQOutDeviceSim,\
-    MassFlowController, MassFlowControllerSim, FFpyPlayer
-from forced_choice import exp_config_name, device_config_name
+from forced_choice.devices import (
+    FTDIOdors, FTDIOdorsSim, DAQInDevice, DAQInDeviceSim, DAQOutDevice,
+    DAQOutDeviceSim, FFpyPlayer)
+
+from cplcom import exp_config_name, device_config_name
+from cplcom.device.barst_server import Server
+from cplcom.device.ftdi import FTDIDevChannel
+from cplcom.device.mfc import MFC
 
 
 odor_method_pat = compile('random([0-9]*)')
@@ -76,51 +81,6 @@ def extract_odor(odors, block, N):
     return odor_list
 
 
-def verify_valve_name(val):
-    if not match(odor_name_pat, val):
-        raise Exception('{} does not match the valve name pattern'.format(val))
-    return unicode_type(val)
-
-
-def verify_odor_method(val):
-    '''If the odor method (``val``) matches a odor method it returns ``val``,
-    otherwise it raises an exception.
-
-    Possible methods are `constant`, `list`, or `randomx`.
-    '''
-    if val in ('constant', 'list') or match(odor_method_pat, val):
-        return unicode_type(val)
-    else:
-        raise Exception('"{}" does not match an odor method'.format(val))
-
-
-class RootStage(MoaStage):
-    '''The root stage of the experiment. This stage contains all the other
-    experiment stages.
-    '''
-
-    def on_finished(self, *largs, **kwargs):
-        '''Executed after the root stage and all sub-stages finished. It stops
-        all the devices.
-        '''
-        if self.finished:
-            def clear_app(*l):
-                app = App.get_running_app()
-                app.app_state = 'clear'
-                app.exp_status = 0
-            barst = self.barst
-            barst.clear_events()
-            barst.start_thread()
-            barst.request_callback('stop_devices', clear_app)
-            fd = self.animal_stage._fd
-            if fd is not None:
-                fd.close()
-
-
-def ffplayer_callback(*l):
-    pass
-
-
 class InitBarstStage(MoaStage, ScheduledEventLoop):
     '''The stage that creates and initializes all the Barst devices (or
     simulation devices if :attr:`ExperimentApp.simulate`).
@@ -131,12 +91,6 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     # if while a device is initialized, stage should stop when finished.
     _should_stop = None
 
-    simulate = BooleanProperty(False)
-    '''If True, virtual devices should be used for the experiment. Otherwise
-    actual Barst devices will be used. This is set to the same value as
-    :attr:`ExperimentApp.simulate`.
-    '''
-
     server = ObjectProperty(None, allownone=True)
     '''The :class:`Server` instance. When :attr:`simulate`, this is None. '''
 
@@ -145,28 +99,36 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     None.
     '''
 
-    mfc = ObjectProperty(None, allownone=True, rebind=True)
-    '''The :class:`MassFlowController` instance, or
-    :class:`MassFlowControllerSim` instance when :attr:`simulate`.
-    '''
+    mfc_air = ObjectProperty(None, allownone=True)
 
-    odor_dev = ObjectProperty(None, allownone=True, rebind=True)
+    mfc_a = ObjectProperty(None, allownone=True)
+
+    mfc_b = ObjectProperty(None, allownone=True)
+
+    mfc_names = ConfigPropertyDict(
+        {'mfc_air': 0, 'mfc_a': 0, 'mfc_b': 0}, 'MFC', 'mfc_names',
+        device_config_name, val_type=int, key_type=str)
+
+    odor_dev = ObjectProperty(None, allownone=True)
     '''The :class:`FTDIOdors` instance, or :class:`FTDIOdorsSim` instance when
     :attr:`simulate`.
     '''
 
-    daq_in_dev = ObjectProperty(None, allownone=True, rebind=True)
+    num_boards = ConfigPropertyList(
+        1, 'FTDI_odor', 'num_boards', device_config_name, val_type=int)
+
+    daq_in_dev = ObjectProperty(None, allownone=True)
     '''The :class:`DAQInDevice` instance, or :class:`DAQInDeviceSim` instance
     when :attr:`simulate`.
     '''
 
-    daq_out_dev = ObjectProperty(None, allownone=True, rebind=True)
+    daq_out_dev = ObjectProperty(None, allownone=True)
     '''The :class:`DAQOutDevice` instance, or :class:`DAQOutDeviceSim`
     instance when :attr:`simulate`.
     '''
 
-    use_mfc = ConfigParserProperty(False, 'MFC', 'use_mfc', device_config_name,
-                                   val_type=to_bool)
+    use_mfc = ConfigParserProperty(
+        False, 'MFC', 'use_mfc', device_config_name, val_type=to_bool)
 
     sound_file_r = ConfigParserProperty(
         '', 'Sound', 'sound_file_r', device_config_name, val_type=unicode_type)
@@ -178,6 +140,8 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
 
     sound_l = ObjectProperty(None, allownone=True, rebind=True)
 
+    next_animal_dev = ObjectProperty(None, allownone=True)
+
     exception_callback = None
     '''The partial function that has been scheduled to be called by the kivy
     thread when an exception occurs. This function must be unscheduled when
@@ -187,13 +151,7 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
 
     def __init__(self, **kw):
         super(InitBarstStage, self).__init__(**kw)
-        self.simulate = App.get_running_app().simulate
-
-    def load_attributes(self, state):
-        # When recovering stage, even if finished before, always redo it
-        # because we need to init the Barst devices, so skip `finished`.
-        state.pop('finished', None)
-        return super(InitBarstStage, self).load_attributes(state)
+        self.exclude_attrs = ['finished']
 
     def clear(self, *largs, **kwargs):
         self._finished_init = False
@@ -219,97 +177,109 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         if not super(InitBarstStage, self).step_stage(*largs, **kwargs):
             return False
 
-        # if we simulate, create the sim devices, otherwise the barst devices
+        # if we simulate, create them and step immediately
         try:
-            f = self.sound_file_r or self.sound_file_l
-            if f:
-                sound_r = MediaPlayer(
-                    filename=resources.resource_find(f),
-                    callback=ref(ffplayer_callback), ff_opts={
-                        'loop': 0, 'vn': True, 'sn': True, 'paused': True})
-#                 sound_l = MediaPlayer(
-#                     filename=resources.resource_find(self.sound_file_l),
-#                     callback=ref(ffplayer_callback), ff_opts={
-#                         'loop': 0, 'vn': True, 'sn': True, 'paused': True})
-                ids = App.get_running_app().simulation_devices.ids
-                for o in (ids.odors.children + [ids[x] for x in [
-                    'ir_leds', 'fans', 'house_light', 'feeder_l', 'feeder_r',
-                    'nose_beam', 'reward_beam_l', 'reward_beam_r', 'sound_l',
-                    'sound_r']]):
-                    o.state = 'normal'
-                self.sound_l = FFpyPlayer(button=ids.sound_l)
-                self.sound_l.player = sound_r
-                self.sound_r = FFpyPlayer(button=ids.sound_r)
-                self.sound_r.player = sound_r
-                self.sound_l.activate(self)
-                self.sound_r.activate(self)
-            if self.simulate:
-                self.create_sim_devices()
+            if App.get_running_app().simulate:
+                self.create_devices()
                 self.step_stage()
-                return True
-
-            self.create_devices()
-            self.request_callback('start_devices',
-                                  callback=self.finish_start_devices)
+            else:
+                self.create_devices(sim=False)
+                self.request_callback(
+                    'start_devices', callback=self.finish_start_devices)
         except Exception as e:
-            App.get_running_app().device_exception((e, traceback.format_exc()))
+            App.get_running_app().device_exception(e)
 
         return True
 
-    def create_sim_devices(self):
+    def create_devices(self, sim=True):
         '''Creates simulated versions of the barst devices.
         '''
-        app = App.get_running_app()
-        ids = app.simulation_devices.ids
-        odors = ids.odors.children
-        N = len(odors)
-        self.odor_dev = FTDIOdorsSim(attr_map={
-            'p{}'.format(i): odors[N - i - 1].__self__ for i in range(N)})
-
         daqout = ['ir_leds', 'fans', 'house_light', 'feeder_l', 'feeder_r']
         daqin = ['nose_beam', 'reward_beam_l', 'reward_beam_r']
-        self.daq_in_dev = DAQInDeviceSim(
+        ids = App.get_running_app().simulation_devices.ids
+        for o in ([ids[x] for x in daqout + daqin + ['sound_l', 'sound_r']]):
+            o.state = 'normal'
+
+        if sim:
+            odorcls = FTDIOdorsSim
+            daqincls = DAQInDeviceSim
+            daqoutcls = DAQOutDeviceSim
+        else:
+            odorcls = FTDIOdors
+            daqincls = DAQInDevice
+            daqoutcls = DAQOutDevice
+        app = App.get_running_app()
+        ids = app.simulation_devices.ids
+
+        self.next_animal_dev = ButtonChannel(
+            button=app.next_animal_btn.__self__, name='next_animal')
+        self.next_animal_dev.activate(self)
+
+        dev_cls = [Factory.get('ToggleDevice'), Factory.get('DarkDevice')]
+        odor_btns = ids.odors
+        odor_btns.clear_widgets()
+        for i in range(self.num_boards[0] * 8):
+            odor_btns.add_widget(dev_cls[i % 2](text='p{}'.format(i)))
+        odors = self.odor_dev = odorcls(
+            name='odors', odor_btns=odor_btns.children,
+            N=self.num_boards[0] * 8)
+
+        self.daq_in_dev = daqincls(
             attr_map={k: ids[k].__self__ for k in daqin})
-        self.daq_out_dev = DAQOutDeviceSim(
+        self.daq_out_dev = daqoutcls(
             attr_map={k: ids[k].__self__ for k in daqout})
 
         if self.use_mfc:
-            mfc = self.mfc = MassFlowControllerSim(
-                air=(ids['air'].__self__, 'state'),
-                mfc_a=(ids['mfc_a'].__self__, 'state'),
-                mfc_b=(ids['mfc_b'].__self__, 'state'))
-            mfc.air.activate(self)
-            mfc.mfc_a.activate(self)
-            mfc.mfc_b.activate(self)
+            air = self.mfc_names['mfc_air']
+            a = self.mfc_names['mfc_a']
+            b = self.mfc_names['mfc_b']
+            if sim:
+                self.mfc_air = NumericPropertyChannel(
+                    channel_widget=ids.mfc_air, prop_name='value')
+                self.mfc_a = NumericPropertyChannel(
+                    channel_widget=ids.mfc_a, prop_name='value')
+                self.mfc_b = NumericPropertyChannel(
+                    channel_widget=ids.mfc_b, prop_name='value')
+            else:
+                self.mfc_air = MFC(
+                    channel_widget=ids.mfc_air, prop_name='value', idx=air)
+                self.mfc_a = MFC(
+                    channel_widget=ids.mfc_a, prop_name='value', idx=a)
+                self.mfc_b = MFC(
+                    channel_widget=ids.mfc_b, prop_name='value', idx=b)
 
-        self.odor_dev.activate(self)
-        self.daq_in_dev.activate(self)
-        self.daq_out_dev.activate(self)
+        f = self.sound_file_r or self.sound_file_l
+        if f:
+            self.sound_l = FFpyPlayer(button=ids.sound_l)
+            self.sound_r = FFpyPlayer(button=ids.sound_r)
 
-    def create_devices(self):
-        server = self.server = Server()
-        server.create_device()
-        barst_server = server.target
-
-        ftdi = self.ftdi_chan = FTDIDevChannel()
-        odors = self.odor_dev = FTDIOdors()
-        ftdi.create_device([odors.get_settings()], barst_server)
-        daqin = self.daq_in_dev = DAQInDevice()
-        daqout = self.daq_out_dev = DAQOutDevice()
-        daqin.create_device(barst_server)
-        daqout.create_device(barst_server)
-        if self.use_mfc:
-            mfc = self.mfc = MassFlowController()
-            mfc.create_device(barst_server)
+        if not sim:
+            server = self.server = Server()
+            server.create_device()
+            ftdi = self.ftdi_chan = FTDIDevChannel()
+            ftdi.create_device([odors], server)
+            for dev in [
+                self.odor_dev, self.daq_in_dev,
+                self.daq_out_dev, self.mfc_air, self.mfc_a, self.mfc_b]:
+                if dev is not None:
+                    dev.create_device(server)
+            for dev in [self.sound_l, self.sound_r]:
+                if dev is not None:
+                    dev.create_device(f)
+        else:
+            for dev in [
+                self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
+                self.mfc_a, self.mfc_b, self.sound_l, self.sound_r]:
+                if dev is not None:
+                    dev.activate(self)
 
     def start_devices(self):
-        self.server.start_channel()
-        self.odor_dev.target = self.ftdi_chan.start_channel()[0]
-        self.odor_dev.start_channel()
-        self.daq_in_dev.start_channel()
-        self.daq_out_dev.start_channel()
-        if self.use_mfc:
-            self.mfc.start_channel()
+        for dev in [
+            self.server, self.ftdi_chan, self.odor_dev, self.daq_in_dev,
+            self.daq_out_dev, self.mfc_air, self.mfc_a, self.mfc_b,
+            self.sound_l, self.sound_r]:
+            if dev is not None:
+                dev.start_channel()
 
     def finish_start_devices(self, *largs):
         self._finished_init = True
@@ -320,14 +290,11 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         if self.paused:
             return
 
-        self.odor_dev.activate(self)
-        self.daq_in_dev.activate(self)
-        self.daq_out_dev.activate(self)
-        if self.use_mfc:
-            mfc = self.mfc
-            mfc.air.activate(self)
-            mfc.mfc_a.activate(self)
-            mfc.mfc_b.activate(self)
+        for dev in [
+            self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
+            self.mfc_a, self.mfc_b, self.sound_l, self.sound_r]:
+            if dev is not None:
+                dev.activate(self)
         self.step_stage()
 
     def handle_exception(self, exception, event):
@@ -339,67 +306,47 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         Clock.schedule_once(callback)
 
     def stop_devices(self):
-        '''Called from :class:`InitBarstStage` internal thread. It stops
-        and clears the states of all the devices.
-        '''
-        odor_dev = self.odor_dev
-        daq_in_dev = self.daq_in_dev
-        daq_out_dev = self.daq_out_dev
-        ftdi_chan = self.ftdi_chan
-        mfc = self.mfc
-        if self.use_mfc and mfc is not None:
-            mfcs = mfc.air, mfc.mfc_a, mfc.mfc_b
-        else:
-            mfcs = ()
-        unschedule = Clock.unschedule
-        for dev in (odor_dev, daq_in_dev, daq_out_dev) + mfcs:
+        for dev in [
+            self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
+            self.mfc_a, self.mfc_b, self.sound_l, self.sound_r]:
             if dev is not None:
                 dev.deactivate(self)
 
-        if self.sound_l:
-            self.sound_l.deactivate(self)
-            self.sound_l.player.close_player()
-        if self.sound_r:
-            self.sound_r.deactivate(self)
-        self.sound_l = None
-        self.sound_r = None
+        fd = moas.animal_stage._fd
+        if fd is not None:
+            fd.close()
 
-        unschedule(self.exception_callback)
-        if self.simulate:
-            self.stop_thread()
+        Clock.unschedule(self.exception_callback)
+        self.clear_events()
+        self.stop_thread(join=True)
+        if App.get_running_app().simulate:
+            App.get_running_app().app_state = 'clear'
             return
 
-        for dev in (self.server, ftdi_chan, odor_dev, daq_in_dev,
-                    daq_out_dev) + mfcs:
+        for dev in [
+            self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
+            self.mfc_a, self.mfc_b, self.sound_l, self.sound_r, self.ftdi_chan,
+            self.server]:
             if dev is not None:
-                dev.cancel_exception()
-                dev.stop_thread(True)
-                dev.clear_events()
+                dev.stop_device()
 
-        f = []
-        append = f.append
-        if daq_out_dev is not None:
-            attr_map = daq_out_dev.attr_map
-            mask = 0
-            for val in attr_map.values():
-                mask |= 1 << val
-            append(partial(daq_out_dev.target.write, mask=mask, value=0))
+        def clear_app(*l):
+            App.get_running_app().app_state = 'clear'
+        self.start_thread()
+        self.request_callback(
+            'stop_devices_internal', callback=clear_app, cls_method=True)
 
-        if odor_dev is not None and odor_dev.target is not None:
-            append(partial(odor_dev.target.write,
-                           set_low=range(8 * odor_dev.num_boards)))
-        if ftdi_chan is not None and ftdi_chan.target is not None:
-            append(ftdi_chan.target.close_channel_server)
-        if daq_in_dev is not None and daq_in_dev.target is not None:
-            append(daq_in_dev.target.close_channel_server)
-        for m in mfcs:
-            if m is not None:
-                append(partial(m.set_mfc_rate, 0.))
-                append(m.target.close_channel_server)
-
-        for fun in f:
+    def stop_devices_internal(self):
+        '''Called from :class:`InitBarstStage` internal thread. It stops
+        and clears the states of all the devices.
+        '''
+        for dev in [
+            self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
+            self.mfc_a, self.mfc_b, self.sound_l, self.sound_r, self.ftdi_chan,
+            self.server]:
             try:
-                fun()
+                if dev is not None:
+                    dev.stop_channel()
             except:
                 pass
         self.stop_thread()
@@ -415,9 +362,9 @@ class VerifyConfigStage(MoaStage):
     :meth:`ExperimentApp.device_exception` with the exception.
     '''
 
-    def load_attributes(self, state):
-        state.pop('finished', None)
-        return super(InitBarstStage, self).load_attributes(state)
+    def __init__(self, **kw):
+        super(VerifyConfigStage, self).__init__(**kw)
+        self.exclude_attrs = ['finished']
 
     def step_stage(self, *largs, **kwargs):
         if not super(VerifyConfigStage, self).step_stage(*largs, **kwargs):
@@ -428,7 +375,7 @@ class VerifyConfigStage(MoaStage):
             self.ensure_full_blocks()
             self.parse_odors()
             if any(self.sound_dur):
-                if not self.barst.sound_r or not self.barst.sound_l:
+                if not moas.barst.sound_r or not moas.barst.sound_l:
                     raise Exception('Sound selected, but sound files not '
                                     'provided')
             ch = App.get_running_app().simulation_devices.ids.odors.children
@@ -438,8 +385,19 @@ class VerifyConfigStage(MoaStage):
             ch[15 - no].background_normal = 'dark-blue-led-off-th.png'
             ch[15 - mix].background_down = 'brown-led-on-th.png'
             ch[15 - mix].background_normal = 'brown-led-off-th.png'
+            timer = App.get_running_app().timer
+            timer.clear_slices()
+            elems = (
+                (0, 'Init'), (0, 'Wait NP'),
+                (max(self.max_nose_poke), 'NP'),
+                (max(self.max_decision_duration), 'Wait HP'),
+                (max([max(self.good_iti), max(self.bad_iti),
+                      max(self.incomplete_iti)]), 'ITI'))
+            for t, name in elems:
+                timer.add_slice(name=name, duration=t)
+            timer.smear_slices()
         except Exception as e:
-            App.get_running_app().device_exception((e, traceback.format_exc()))
+            App.get_running_app().device_exception(e)
             return
         self.step_stage()
         return True
@@ -450,8 +408,8 @@ class VerifyConfigStage(MoaStage):
         If using an mfc, the 4th column is either a, or b indicating the mfc
         to use of that valve.
         '''
-        N = 8 * self.barst.odor_dev.num_boards
-        use_mfc = self.barst.use_mfc
+        N = 8 * moas.barst.num_boards[0]
+        use_mfc = moas.barst.use_mfc
         odor_side = ['rl', ] * N
         valve_mfc = [None, ] * N
         odor_name = ['p{}'.format(i) for i in range(N)]
@@ -460,8 +418,6 @@ class VerifyConfigStage(MoaStage):
         odor_path = resources.resource_find(self.odor_path)
         with open(odor_path, 'rb') as fh:
             for row in csv.reader(fh):
-                if not row.strip():
-                    continue
                 row = [elem.strip() for elem in row]
                 if use_mfc:
                     i, name, side, mfc = row[:4]
@@ -506,8 +462,6 @@ class VerifyConfigStage(MoaStage):
             if len(item) > num_blocks:
                 raise Exception('The size of {} is larger than the number '
                                 'of blocks, {}'.format(item, num_blocks))
-            elif len(item) < num_blocks:
-                item += [item[-1]] * (num_blocks - len(item))
         if any([x <= 0 for x in self.num_trials]):
             raise Exception('Number of trials is not positive for every block')
         for v in self.NO_valve:
@@ -646,6 +600,12 @@ class VerifyConfigStage(MoaStage):
     mfc_b_rate = ConfigParserProperty(.1, 'Odor', 'mfc_b_rate',
                                       exp_config_name, val_type=float)
 
+    def verify_odor_method(val):
+        if val in ('constant', 'list') or match(odor_method_pat, val):
+            return val
+        else:
+            raise Exception('"{}" does not match an odor method'.format(val))
+
     odor_method = ConfigPropertyList(
         'constant', 'Odor', 'odor_method', exp_config_name,
         val_type=verify_odor_method)
@@ -686,6 +646,12 @@ class VerifyConfigStage(MoaStage):
     '''A list of, for each block in :attr:`num_blocks`, a list of odors to
     select from for each block. See :attr:`odor_method`.
     '''
+
+    def verify_valve_name(val):
+        if not match(odor_name_pat, val):
+            raise Exception('{} does not match the valve name pattern'.
+                            format(val))
+        return val
 
     NO_valve = ConfigPropertyList('p0', 'Odor', 'NO_valve',
                                   exp_config_name, val_type=verify_valve_name)
@@ -872,9 +838,9 @@ class AnimalStage(MoaStage):
 
     def post_verify(self):
         '''Executed after the :class:`VerifyConfigStage` stage finishes. '''
-        verify = self.verify
+        verify = moas.verify
         wfnp = verify.wait_for_nose_poke
-        predict = App.get_running_app().prediction_container
+        predict = App.get_running_app().root.ids.prediction_container
         predict_add = predict.add_widget
         odors = verify.trial_odors
         names = verify.odor_names
@@ -906,19 +872,20 @@ class AnimalStage(MoaStage):
 
     def initialize_box(self):
         ''' Turns on fans, lights etc. '''
-        self.verify.barst.daq_out_dev.set_state(high=['ir_leds', 'fans'])
+        moas.barst.daq_out_dev.set_state(high=['ir_leds', 'fans'])
 
     def pre_block(self):
         '''Executed before each block. '''
         self.total_fail = self.total_pass = self.total_incomplete = 0
-        self.num_trials = self.verify.num_trials[self.block.count]
-        for plot in App.get_running_app().plots:
-            plot.points = []
+        self.num_trials = moas.verify.num_trials[moas.block.count]
+        ids = App.get_running_app().root.ids
+        for graph in (ids.ttnp, ids.tinp, ids.ttrp, ids.outcome):
+            graph.plots[0].points = []
         self.outcomes = []
 
     def start_mixing(self):
-        verify, block, trial = self.verify, self.block.count, self.trial.count
-        barst = verify.barst
+        verify, block, trial = moas.verify, moas.block.count, moas.trial.count
+        barst = moas.barst
         if barst.use_mfc:
             pass
         else:
@@ -931,13 +898,13 @@ class AnimalStage(MoaStage):
         self.trial_start_ts = clock()
         self.trial_start_time = strftime('%H:%M:%S')
 
-        container = App.get_running_app().outcome_container
+        container = App.get_running_app().root.ids.results_container
         self.outcome_wid = widget = container.children[0]
         container.remove_widget(widget)
         container.add_widget(widget, len(container.children))
 
-        block, trial = self.block.count, self.trial.count
-        verify = self.verify
+        block, trial = moas.block.count, moas.trial.count
+        verify = moas.verify
         widget.init_outcome(self.animal_id, block, trial)
 
         self.nose_poke_ts = self.odor_start_ts = self.nose_poke_exit_ts = None
@@ -958,18 +925,18 @@ class AnimalStage(MoaStage):
             self.odor = odor = odor[0] if odor[0][2] >= odor[1][2] else odor[1]
         widget.side = side = self.side = verify.odor_side[odor[0]]
         if verify.sound_dur[block] and side != '-':
-            self.sound = (verify.barst.sound_r if 'r' in side else
-                          verify.barst.sound_l)
+            self.sound = (moas.barst.sound_r if 'r' in side else
+                          moas.barst.sound_l)
 
     def do_nose_poke(self):
         '''Executed after the first nose port entry of the trial. '''
         self.nose_poke_ts = clock()
         ttnp = self.outcome_wid.ttnp = self.nose_poke_ts - self.trial_start_ts
-        App.get_running_app().plots[0].points.append((self.trial.count, ttnp))
+        App.get_running_app().root.ids.ttnp.plots[0].points.append((moas.trial.count, ttnp))
 
     def do_odor_release(self):
-        self.verify.barst.odor_dev.set_state(
-            high=[self.verify.mix_valve[self.block.count]])
+        moas.barst.odor_dev.set_state(
+            high=[moas.verify.mix_valve[moas.block.count]])
         self.odor_start_ts = clock()
 
     def do_nose_poke_exit(self, timed_out):
@@ -977,8 +944,8 @@ class AnimalStage(MoaStage):
         te = self.nose_poke_exit_ts = clock()
 
         # turn off odor
-        verify, block, trial = self.verify, self.block.count, self.trial.count
-        barst = verify.barst
+        verify, block, trial = moas.verify, moas.block.count, moas.trial.count
+        barst = moas.barst
         if barst.use_mfc:
             pass
         else:
@@ -990,10 +957,10 @@ class AnimalStage(MoaStage):
         self.nose_poke_exit_timed_out = timed_out
         wid = self.outcome_wid
         tinp = wid.tinp = te - self.nose_poke_ts
-        App.get_running_app().plots[1].points.append((self.trial.count, tinp))
+        App.get_running_app().root.ids.tinp.plots[0].points.append((moas.trial.count, tinp))
 
         if not timed_out:
-            min_poke = self.verify.min_nose_poke[block]
+            min_poke = moas.verify.min_nose_poke[block]
             if min_poke > 0 and tinp < min_poke:
                 self.outcome = 'inc'
                 self.reward_side = False
@@ -1002,7 +969,7 @@ class AnimalStage(MoaStage):
                 wid.incomplete = True
                 self.iti = wid.iti = verify.incomplete_iti[block]
 
-                blocks = App.get_running_app().prediction_container.children
+                blocks = App.get_running_app().root.ids.prediction_container.children
                 trials = blocks[len(blocks) - block - 1].children
                 predict = trials[len(trials) - trial - 1]
                 predict.outcome = False
@@ -1013,9 +980,9 @@ class AnimalStage(MoaStage):
         '''Executed after the reward port entry or after waiting for the
         reward port entry timed out. '''
         ts = self.reward_entry_ts = clock()
-        verify, block, trial = self.verify, self.block.count, self.trial.count
+        verify, block, trial = moas.verify, moas.block.count, moas.trial.count
         wid = self.outcome_wid
-        blocks = App.get_running_app().prediction_container.children
+        blocks = App.get_running_app().root.ids.prediction_container.children
         trials = blocks[len(blocks) - block - 1].children
         predict = trials[len(trials) - trial - 1]
 
@@ -1028,7 +995,7 @@ class AnimalStage(MoaStage):
                 'r' if r else 'l'
             wid.ttrp = ts - (self.nose_poke_exit_ts if self.nose_poke_exit_ts
                              is not None else self.trial_start_ts)
-            App.get_running_app().plots[2].points.append((self.trial.count,
+            App.get_running_app().root.ids.ttrp.plots[0].points.append((moas.trial.count,
                                                           wid.ttrp))
 
 
@@ -1054,12 +1021,12 @@ class AnimalStage(MoaStage):
 
     def post_trial(self):
         '''Executed after each trial. '''
-        fname = strftime(self.log_filename.format(**{'trial': self.trial.count,
-            'block': self.block.count, 'animal': self.animal_id}))
+        fname = strftime(self.log_filename.format(**{'trial': moas.trial.count,
+            'block': moas.block.count, 'animal': self.animal_id}))
         filename = self._filename
         o = self.outcomes[-self.filter_len:]
-        App.get_running_app().plots[3].points.append((
-            self.trial.count, sum(o) / max(1., float(len(o))) * 100))
+        App.get_running_app().root.ids.outcome.plots[0].points.append((
+            moas.trial.count, sum(o) / max(1., float(len(o))) * 100))
 
         if filename != fname:
             if not fname:
@@ -1085,8 +1052,8 @@ class AnimalStage(MoaStage):
         odor_idx = self.odor[0]
         outcome = {'fail': 0, 'pass': 1, 'inc': 2, None: None}
         vals = [strftime('%m-%d-%Y'), self.trial_start_time, self.animal_id,
-                self.block.count, self.trial.count,
-                self.verify.odor_names[odor_idx], 'p{}'.format(odor_idx),
+                moas.block.count, moas.trial.count,
+                moas.verify.odor_names[odor_idx], 'p{}'.format(odor_idx),
                 self.side, self.side_went, outcome[self.outcome],
                 bool(self.reward_side), (np - ts) if np else None,
                 (ne - np) if ne and np else None,

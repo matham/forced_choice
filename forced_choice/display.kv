@@ -1,49 +1,123 @@
 #:kivy 1.8.1
 #:import Factory kivy.factory.Factory
 #:import rgb kivy.utils.get_color_from_hex
+#:import MeshLinePlot kivy.garden.graph.MeshLinePlot
+#:import moas moa.base.named_moas
 
 
 # the root level widget
-<MainView>:
+<MainView@GridLayout>:
     padding: 20
+    rows: 1
     ScrollView:
         scroll_type: ['bars']
         bar_width: 10
         GridLayout:
-            rows: 1
             size_hint: None, None
             size: self.minimum_size
-            padding: [40]
-            ExperimentView
-    GridLayout:
-        id: graphs
-        size_hint_x: None
-        width: self.minimum_width
-        cols: 2
-        padding: [20]
-        spacing: [30]
-        TrialGraph:
-            id: ttnp
-            ylabel: 'TTNP'
-            ymax: 5
-        TrialGraph:
-            id: tinp
-            ylabel: 'TINP'
-            ymax: 5
-        TrialGraph:
-            id: ttrp
-            ylabel: 'TTRP'
-            ymax: 6
-        TrialGraph:
-            id: outcome
-            ylabel: 'Outcome'
+            cols: 1
+            spacing: [0, 50]
+            ExperimentControl
+                GridLayout:
+                    cols: 1
+                    size_hint_x: None
+                    width: 100
+                    padding: [5]
+                    spacing: [5]
+                    TextInput:
+                        id: animal_id
+                        height: 2 * self.line_height + 5
+                        size_hint_y: None
+                    Button:
+                        text: 'Next'
+                        on_parent: app.next_animal_btn = self
+                        disabled: app.app_state != 'running'
+                        animal_id: animal_id.text
+            GridLayout:
+                rows: 1
+                size_hint: None, None
+                size: self.minimum_size
+                TimeLine
+                    on_parent: app.timer = self
+                Label:
+                    size_hint_x: None
+                    width: 0
+                    width: max(self.texture_size[0], self.width)
+                    markup: True
+                    color: (.8, .4, 0, 1)
+                    halign: 'center'
+                    total_pass: moas.animal_stage.total_pass if moas.animal_stage else 0
+                    total_fail: moas.animal_stage.total_fail if moas.animal_stage else 0
+                    total_incomplete: moas.animal_stage.total_incomplete if moas.animal_stage else 0
+                    text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{} ({})[/color]'.format(self.total_pass, self.total_fail, self.total_incomplete)
+            ScrollView:
+                scroll_type: ['bars']
+                bar_width: 10
+                size_hint_y: None
+                height: 80
+                GridLayout:
+                    id: prediction_container
+                    size_hint: None, None
+                    size: self.minimum_size
+                    cols: 1
+            GridLayout:
+                size_hint: None, None
+                size: self.minimum_size
+                rows: 1
+                spacing: [20, 0]
+                SimDevs:
+                    id: simulated_devices
+                ScrollView:
+                    size_hint: None, None
+                    size: results_container.children[-1].width if True else results_container.width, results_container.height
+                    do_scroll_y: False
+                    scroll_type: ['bars']
+                    bar_width: 10
+                    GridLayout:
+                        id: results_container
+                        size_hint: None, None
+                        size: self.minimum_size
+                        rows: 1
+                        spacing: [5, 0]
+                        TrialOutcome
+                        TrialOutcome
+                        TrialOutcome
+                        TrialOutcome
+                        TrialOutcome
+    Splitter:
+        min_size: '10pt'
+        max_size: root.width
+        keep_within_parent: True
+        rescale_with_parent: True
+        GridLayout:
+            id: graphs
+            cols: 2
+            padding: [20]
+            spacing: [30]
+            TrialGraph:
+                id: ttnp
+                ylabel: 'TTNP'
+                ymax: 5
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('7dac9f')))
+            TrialGraph:
+                id: tinp
+                ylabel: 'TINP'
+                ymax: 5
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('dc7062')))
+            TrialGraph:
+                id: ttrp
+                ylabel: 'TTRP'
+                ymax: 6
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('66a8d4')))
+            TrialGraph:
+                id: outcome
+                ylabel: 'Outcome'
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('e5b060')))
 
 
 <TrialGraph@Graph>:
-    xmax: max(1, app.base_stage.animal_stage.num_trials if app.base_stage else self.xmax)
+    xmax: max(1, moas.animal_stage.num_trials if moas.animal_stage else self.xmax)
     xlabel: 'Trial'
-    size_hint_x: None
-    width: 300
     label_options: {'color': rgb('444444'), 'bold': True}
     background_color: rgb('000000')
     tick_color: rgb('808080')
@@ -56,131 +130,100 @@
     x_ticks_major: 25
 
 
-# various button/switch widgets
-<SwitchIcon@ToggleButtonBehavior+LabeledIcon>
-<PressIcon@ButtonBehavior+LabeledIcon>
+<MFCDisplay@GridLayout>:
+    cols: 1
+    value: 0.0
+    width: 70
+    padding: [0, 10]
+    size_hint_x: None
+    on_value: if not text.focus: text.text = str(self.value)
+    dev_name: ''
+    disabled: app.app_state == 'clear' or app.app_state == 'exception'
+    Label:
+        size_hint_y: None
+        height: self.texture_size[1]
+        padding_y: 10
+        halign: 'center'
+        text: root.dev_name
+    TextInput:
+        input_filter: 'float'
+        multiline: False
+        id: text
+        on_text_validate: root.value = float(self.text) if self.text else 0.
+        on_focus: if not self.focus: self.text = str(root.value)
 
-<ToggleSwitch>:
-    disabled: app.app_state == 'clear' or app.app_state == 'exception' or not self.dev
-    text_height: 50
-    halign: 'center'
-
-<PortSwitch>:
-    dev: app.base_stage and app.base_stage.barst.odor_dev
-
-<DarkPortSwitch>
-    canvas.before:
-        Color:
-            rgba: [0.5, 0.5, 0.5, 0.08]
-        Rectangle:
-            size: self.size
-            pos: self.pos
+<DevContainer@GridLayout>:
+    size_hint: None, None
+    size: self.minimum_size
+    cols: 8
+    spacing: [10, 0]
 
 # holds the simulation devices
-<SimulatedDevices>:
+<SimDevs@GridLayout>:
     cols: 1
     size_hint: None, None
     size: self.minimum_size
     on_parent: app.simulation_devices = self
-    daq_in_dev: app.base_stage and app.base_stage.barst.daq_in_dev
-    daq_out_dev: app.base_stage and app.base_stage.barst.daq_out_dev
-    sound_r_dev: app.base_stage and app.base_stage.barst.sound_r
-    sound_l_dev: app.base_stage and app.base_stage.barst.sound_l
-    PortContainer:
+    DevContainer:
         id: odors
-        num_devs: 16
-        size_hint: None, None
-        size: self.minimum_size
-        cols: 8
-        spacing: [10, 0]
     Widget:
         size_hint_y: None
         height: 20
-    GridLayout:
-        size_hint: None, None
-        size: self.minimum_size
-        cols: 8
-        spacing: [10, 0]
-        ToggleSwitch:
+    DevContainer:
+        ToggleDevice:
             id: house_light
             text: 'House light'
-            dev: root.daq_out_dev
-            chan_name: 'house_light'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: nose_beam
             text: 'Nose beam'
-            dev: root.daq_in_dev
-            chan_name: 'nose_beam'
-            read_only: True
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: sound_l
             text: 'L-sound'
-            dev: root.sound_l_dev
-            chan_name: 'state'
-            virtual: True
-            is_port: False
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        ToggleSwitch:
+        ToggleDevice:
             id: reward_beam_l
             text: 'L-beam'
-            dev: root.daq_in_dev
-            chan_name: 'reward_beam_l'
-            read_only: True
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: feeder_l
             text: 'L-feeder'
-            dev: root.daq_out_dev
-            chan_name: 'feeder_l'
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: sound_r
             text: 'R-sound'
-            dev: root.sound_r_dev
-            chan_name: 'state'
-            virtual: True
-            is_port: False
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        ToggleSwitch:
+        ToggleDevice:
             id: reward_beam_r
             text: 'R-beam'
-            dev: root.daq_in_dev
-            chan_name: 'reward_beam_r'
-            read_only: True
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: feeder_r
             text: 'R-feeder'
-            dev: root.daq_out_dev
-            chan_name: 'feeder_r'
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: ir_leds
             text: 'IR'
-            dev: root.daq_out_dev
-            chan_name: 'ir_leds'
-            virtual: app.simulate
-        ToggleSwitch:
+        ToggleDevice:
             id: fans
             text: 'Fans'
-            dev: root.daq_out_dev
-            chan_name: 'fans'
-            virtual: app.simulate
+        MFCDisplay:
+            id: mfc_air
+            dev_name: 'MFC air'
+        MFCDisplay:
+            id: mfc_a
+            dev_name: 'MFC a'
+        MFCDisplay:
+            id: mfc_b
+            dev_name: 'MFC b'
         Widget:
-            size_hint: None, None
-            size: 30, simulate.height
+            size_hint_x: None
+            width: 30
         SwitchIcon:
             id: simulate
             text: 'Simulate?'
@@ -263,32 +306,6 @@
         color_str: 'CC6600'
         value: '{:.4f}'.format(root.iti) if root.iti is not None else ''
 
-<SumulatedAndResults@GridLayout>:
-    size_hint: None, None
-    size: self.minimum_size
-    rows: 1
-    spacing: [20, 0]
-    SimulatedDevices:
-        id: simulated_devices
-    ScrollView:
-        size_hint: None, None
-        size: results_container.children[-1].width if True else results_container.width, results_container.height
-        do_scroll_y: False
-        scroll_type: ['bars']
-        bar_width: 10
-        GridLayout:
-            id: results_container
-            on_parent: app.outcome_container = self
-            size_hint: None, None
-            size: self.minimum_size
-            rows: 1
-            spacing: [5, 0]
-            TrialOutcome
-            TrialOutcome
-            TrialOutcome
-            TrialOutcome
-            TrialOutcome
-
 
 # section holds the experiment schedule for this animal
 <TrialPrediction>:
@@ -314,173 +331,3 @@
     size_hint: None, None
     size: self.minimum_size
     rows: 1
-
-
-# the experiment status
-<ExperimentStatus@Label>:
-    text_size: self.size
-    valign: 'middle'
-    halign: 'center'
-    color: (.8, .4, 0, 1)
-    index: len(self.parent.children) - self.parent.children.index(self.__self__)
-    disabled: app.exp_status < self.index
-
-<ExperimentStatusText@BoxLayout>:
-    padding: [5]
-    spacing: 5
-    ExperimentStatus:
-        text: 'Initializing'
-    ExperimentStatus:
-        text: 'Next subject'
-    ExperimentStatus:
-        text: 'Nose poke'
-    ExperimentStatus:
-        text: 'Nose exit'
-    ExperimentStatus:
-        text: 'Decision'
-    ExperimentStatus:
-        text: 'ITI'
-    Label:
-        size_hint_x: None
-        width: self.texture_size[0]
-        markup: True
-        color: (.8, .4, 0, 1)
-        halign: 'center'
-        total_pass: app.base_stage.animal_stage.total_pass if app.base_stage else 0
-        total_fail: app.base_stage.animal_stage.total_fail if app.base_stage else 0
-        total_incomplete: app.base_stage.animal_stage.total_incomplete if app.base_stage else 0
-        text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{} ({})[/color]'.format(self.total_pass, self.total_fail, self.total_incomplete)
-
-
-# contains the experiment schedule and status
-<ExperimentView@GridLayout>:
-    size_hint: None, None
-    size: self.minimum_size
-    cols: 1
-    spacing: [0, 50]
-    ExperimentControl
-    ExperimentStatusText
-    ScrollView:
-        scroll_type: ['bars']
-        bar_width: 10
-        size_hint_y: None
-        height: 80
-        GridLayout:
-            on_parent: app.prediction_container = self
-            size_hint: None, None
-            size: self.minimum_size
-            cols: 1
-    SumulatedAndResults
-
-
-# controls for starting/stopping the experiment
-<StartingExperiment@GridLayout>:
-    cols: 1
-    size_hint: None, None
-    height: self.minimum_height
-    width: 200
-    padding: [5]
-    spacing: [5]
-    TextInput:
-        height: 2 * self.line_height + 5
-        size_hint_y: None
-        text: app.exp_config_path
-        on_text: app.exp_config_path = self.text
-    GridLayout:
-        rows: 1
-        size_hint_y: None
-        height: 50
-        spacing: [5]
-        Button:
-            text: 'Start'
-            on_press: app.start_stage()
-            disabled: app.app_state != 'clear'
-        Button:
-            text: 'Recover'
-            on_press: app.start_stage(True)
-            disabled: app.app_state != 'clear'
-
-<ExperimentControl@GridLayout>:
-    size_hint_y: None
-    height: self.minimum_height
-    rows: 1
-    spacing: [20, 0]
-    StartingExperiment
-    Widget:
-        size_hint: None, None
-        size: switch.size
-        SwitchIcon:
-            pos: self.parent.pos
-            id: switch
-            size_hint: None, None
-            text: 'Pause' if self.state == 'normal' else 'Continue'
-            max_width: 0
-            text_height: 30
-            background_down: 'play.png'
-            background_normal: 'pause.png'
-            icon_size: 48, 48
-            on_press:
-                app.base_stage is not None and (app.base_stage.unpause() if self.state == 'normal' else app.base_stage.pause())
-                app.app_state =  'running' if self.state == 'normal' else 'paused'
-            disabled: app.app_state != 'running' and app.app_state != 'paused'
-    Widget:
-        size_hint: None, None
-        size: press.size
-        PressIcon:
-            pos: self.parent.pos
-            id: press
-            text: 'Stop'
-            max_width: 0
-            text_height: 30
-            background_down: 'stop_0.png'
-            background_normal: 'stop_1.png'
-            icon_size: 48, 48
-            on_press: app.base_stage and app.base_stage.stop()
-            disabled: app.app_state != 'running'
-    GridLayout:
-        cols: 1
-        size_hint_x: None
-        width: 100
-        padding: [5]
-        spacing: [5]
-        TextInput:
-            id: animal_id
-            height: 2 * self.line_height + 5
-            size_hint_y: None
-        Button:
-            text: 'Next'
-            on_parent: app.next_animal_btn = Factory.get('ButtonChannel')(button=self)
-            disabled: app.app_state != 'running'
-            animal_id: animal_id.text
-    Label:
-        size_hint_x: None
-        width: self.height
-        on_touch_down: app.exception_value and self.collide_point(*args[1].pos) and (app.popup_anim.cancel(self) or setattr(self, 'warn_alpha', int(bool(app.exception_value))) or app.err_popup.open())
-        warn_alpha: 0.
-        warn_text: app.exception_value
-        on_warn_text:
-            if self.warn_text and app.popup_anim: app.popup_anim.start(self)
-            else: setattr(self, 'warn_alpha', 0)
-        canvas:
-            Color:
-                rgb: 1, 1, 1
-                a: self.warn_alpha
-            Rectangle:
-                pos: self.pos
-                size: self.size
-                source: 'Remove_1.png'
-
-
-<ErrorPopup@Popup>:
-    title: 'Message'
-    size_hint: None, None
-    height: min(self.parent.height if self.parent else 0, 600)
-    width: min(self.parent.width if self.parent else 0, 800)
-    ScrollView:
-        scroll_type: ['bars']
-        bar_width: 10
-        Label:
-            size_hint_y: None
-            height: self.texture_size[1]
-            text_size: self.width, None
-            text: app.exception_value

@@ -1,33 +1,14 @@
 # -*- coding: utf-8 -*-
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
-from kivy.properties import (ObjectProperty, StringProperty, NumericProperty,
-                             BooleanProperty)
-from kivy.factory import Factory
+from kivy.properties import StringProperty, NumericProperty, BooleanProperty
 from kivy.lang import Builder
-from kivy.app import App
-from kivy.utils import get_color_from_hex as rgb
-from kivy.garden.graph import Graph, MeshLinePlot
-from kivy.clock import Clock
+from kivy.garden.graph import Graph
 
 import cplcom.graphics
 
 from os import path
 Builder.load_file(path.join(path.dirname(__file__), 'display.kv'))
-
-
-class MainView(BoxLayout):
-    pass
-
-
-class SimulatedDevices(GridLayout):
-
-    odor_dev = ObjectProperty(None, allownone=True)
-    daq_in_dev = ObjectProperty(None, allownone=True)
-    daq_out_dev = ObjectProperty(None, allownone=True)
-    sound_l_dev = ObjectProperty(None, allownone=True)
-    sound_r_dev = ObjectProperty(None, allownone=True)
 
 
 class TrialOutcome(GridLayout):
