@@ -89,33 +89,45 @@
         max_size: root.width
         keep_within_parent: True
         rescale_with_parent: True
-        GridLayout:
-            id: graphs
-            cols: 2
-            padding: [20]
-            spacing: [30]
-            TrialGraph:
-                id: ttnp
-                ylabel: 'TTNP'
-                ymax: 5
-                on_parent: self.add_plot(MeshLinePlot(color=rgb('7dac9f')))
-            TrialGraph:
-                id: tinp
-                ylabel: 'TINP'
-                ymax: 5
-                on_parent: self.add_plot(MeshLinePlot(color=rgb('dc7062')))
-            TrialGraph:
-                id: ttrp
-                ylabel: 'TTRP'
-                ymax: 6
-                on_parent: self.add_plot(MeshLinePlot(color=rgb('66a8d4')))
-            TrialGraph:
-                id: outcome
-                ylabel: 'Outcome'
-                on_parent: self.add_plot(MeshLinePlot(color=rgb('e5b060')))
+        ScrollView:
+            scroll_type: ['bars']
+            bar_width: 10
+            GridLayout:
+                id: graphs
+                cols: 2
+                size_hint_x: None
+                width: self.minimum_width
+                padding: [20]
+                spacing: [30]
+                TrialGraph:
+                    id: ttnp
+                    ylabel: 'TTNP'
+                    y_ticks_major: 5
+                    ymax: 20
+                    on_parent: self.add_plot(MeshLinePlot(color=rgb('7dac9f')))
+                TrialGraph:
+                    id: tinp
+                    ylabel: 'TINP'
+                    y_ticks_major: .25
+                    ymax: 3
+                    on_parent: self.add_plot(MeshLinePlot(color=rgb('dc7062')))
+                TrialGraph:
+                    id: ttrp
+                    ylabel: 'TTRP'
+                    y_ticks_major: .25
+                    ymax: 2
+                    on_parent: self.add_plot(MeshLinePlot(color=rgb('66a8d4')))
+                TrialGraph:
+                    id: outcome
+                    ylabel: 'Outcome'
+                    y_ticks_major: 25
+                    ymax: 100.
+                    on_parent: self.add_plot(MeshLinePlot(color=rgb('e5b060')))
 
 
 <TrialGraph@Graph>:
+    size_hint_x: None
+    width: 450
     xmax: max(1, moas.animal_stage.num_trials if moas.animal_stage else self.xmax)
     xlabel: 'Trial'
     label_options: {'color': rgb('444444'), 'bold': True}
@@ -128,6 +140,7 @@
     y_grid_label: True
     x_ticks_minor: 10
     x_ticks_major: 25
+    y_ticks_minor: 5
 
 
 <MFCDisplay@GridLayout>:

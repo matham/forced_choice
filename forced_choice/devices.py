@@ -193,11 +193,19 @@ class FFpyPlayer(DeviceStageInterface, ButtonChannel):
 
     playing = False
 
-    def create_device(self, filename, *largs, **kwargs):
+    def create_device(self, filename, player=None, *largs, **kwargs):
+        # XXX temp fix
+        if player is not None:
+            self.player = player
+            return
         self.player = MediaPlayer(
             filename=resources.resource_find(filename),
             callback=ref(ffplayer_callback), ff_opts={
                 'loop': 0, 'vn': True, 'sn': True, 'paused': True})
+
+    def stop_channel(self, *largs, **kwargs):
+        if self.player:
+            self.player.close_player()
 
     def on_state(self, *l):
         if self.playing == self.state:

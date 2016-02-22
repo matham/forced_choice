@@ -6,7 +6,7 @@ setup(
     name='Forced Choice',
     version=forced_choice.__version__,
     packages=find_packages(),
-    install_requires=['moa', 'pybarst', 'moadevs', 'ffpyplayer', 'cplcom'],
+    install_requires=['moa', 'pybarst', 'ffpyplayer', 'cplcom'],
     author='Matthew Einhorn',
     author_email='moiein2000@gmail.com',
     url='https://cpl.cornell.edu/',

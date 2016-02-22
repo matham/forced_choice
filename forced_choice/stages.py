@@ -8,8 +8,10 @@ import traceback
 from time import clock, strftime
 from re import match, compile
 from os.path import join, isfile
+from math import ceil
 import csv
-from random import choice, randint, random
+from random import choice, randint, random, shuffle
+from collections import defaultdict
 
 from moa.stage import MoaStage
 from moa.threads import ScheduledEventLoop
@@ -263,9 +265,9 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
                 self.daq_out_dev, self.mfc_air, self.mfc_a, self.mfc_b]:
                 if dev is not None:
                     dev.create_device(server)
-            for dev in [self.sound_l, self.sound_r]:
-                if dev is not None:
-                    dev.create_device(f)
+            if self.sound_l is not None:
+                self.sound_l.create_device(f)
+                self.sound_r.create_device(f, player=self.sound_l.player)
         else:
             for dev in [
                 self.odor_dev, self.daq_in_dev, self.daq_out_dev, self.mfc_air,
@@ -452,13 +454,14 @@ class VerifyConfigStage(MoaStage):
         if num_blocks <= 0:
             raise Exception('Number of blocks is not positive')
         # make sure the number of blocks match, otherwise, fill it up
-        for item in (self.num_trials, self.wait_for_nose_poke, self.odor_delay,
-                     self.odor_method, self.odor_selection, self.NO_valve,
-                     self.min_nose_poke, self.sound_cue_delay,
-                     self.max_nose_poke, self.sound_dur,
-                     self.max_decision_duration, self.bad_iti,
-                     self.good_iti, self.incomplete_iti, self.num_pellets,
-                     self.mix_valve):
+        for item in (
+                self.num_trials, self.wait_for_nose_poke, self.odor_delay,
+                self.odor_method, self.odor_selection, self.NO_valve,
+                self.min_nose_poke, self.sound_cue_delay,
+                self.max_nose_poke, self.sound_dur, self.odor_equalizer,
+                self.max_decision_duration, self.bad_iti,
+                self.good_iti, self.incomplete_iti, self.num_pellets,
+                self.mix_valve):
             if len(item) > num_blocks:
                 raise Exception('The size of {} is larger than the number '
                                 'of blocks, {}'.format(item, num_blocks))
@@ -473,8 +476,93 @@ class VerifyConfigStage(MoaStage):
             if m is None or int(v[1:]) >= 16:
                 raise Exception('Mixing valve {} is not recognized')
 
+    def do_equal_random(self, n, m, cond, last_val=None):
+        vals = []
+        k = n // m
+        if n % m:
+            raise ValueError("{} odors don't equally divide {}".format(m, n))
+
+        if cond == 1 and m == 2:
+            newvals = [0, 1] if last_val is None or last_val else [1, 0]
+            for i in range(k):
+                vals.extend(newvals)
+            return vals
+
+        for i in range(m):
+            vals.extend([i, ] * k)
+        shuffle(vals)
+        if not cond:
+            return vals
+
+        if last_val is not None and vals[0] == last_val:
+            i = 1
+            while vals[i] == last_val:
+                i += 1
+            vals[0] = vals[i]
+            vals[i] = last_val
+
+        # cond is now > 1
+        while True:
+            dups = [(vals[0], 1)]
+            for i, val in enumerate(vals[1:], 1):
+                if val == dups[-1][0]:
+                    dups.append((val, dups[-1][1] + 1))
+                else:
+                    dups.append((val, 1))
+
+            first, second = None, None  # first two that violate the cond
+            for i, (val, count) in enumerate(dups[::-1]):  # <-- backwards
+                i = len(dups) - 1 - i
+                if count > cond:
+                    if first is None:
+                        first = val, i
+                    elif first[0] != val:
+                        second = val, i
+                        break
+
+            if first is None:  # no violators
+                return vals
+
+            if first is not None and second is not None:
+                # exchange the first with second violator
+                val1, i1 = first
+                val2, i2 = second
+                vals[i1] = val2
+                vals[i2] = val1
+                continue
+
+            # only one violator, put it in the first place it won't violate
+            while True:
+                val1, i1 = first
+                i = randint(0, len(vals))  # add AFTER i
+                if i1 - i >= -1 and i1 - i <= cond:
+                    continue
+
+                if i == len(vals):  # it's at the end
+                    if vals[-1] != val1 or dups[-1][1] + 1 <= cond:
+                        del vals[i1 - 1]
+                        vals.append(val1)
+                        break
+                    continue
+
+                # it's at 0, or last val is different, or we're still under cond
+                if not i or vals[i - 1] != val1 or dups[i - 1][1] + 1 <= cond:
+                    # how many are will be total
+                    count = 1
+                    s = i
+                    if vals[i - 1] == val1:
+                        count += dups[i - 1][1]
+                    while s < len(vals) and vals[s] == val1:
+                        count += 1
+                        s += 1
+
+                    if count <= cond:
+                        vals.insert(i, val1)
+                    del vals[i1 if i1 < i else i1 + 1]
+
     def parse_odors(self):
         odor_method = self.odor_method
+        odor_equalizer = self.odor_equalizer
         odor_selection = self.odor_selection
         num_trials = self.num_trials
         app = App.get_running_app()
@@ -493,6 +581,7 @@ class VerifyConfigStage(MoaStage):
                                 .format(block))
 
             method = odor_method[block]
+            equalizer = odor_equalizer[block]
             # if there's only a filename there, read it for this block
             if method == 'list':
                 if len(block_odors) > 1:
@@ -544,17 +633,26 @@ class VerifyConfigStage(MoaStage):
 
                     # the condition for this random method
                     condition = int(m.group(1)) if m.group(1) else 0
-                    if condition <= 0:  # random without condition
-                        trial_odors[block] = [choice(odors) for _ in range(n)]
+                    if not equalizer:
+                        if condition <= 0:  # random without condition
+                            trial_odors[block] = [choice(odors) for _ in range(n)]
+                        else:
+                            rand_odors = []
+                            for _ in range(n):
+                                o = randint(0, len(odors) - 1)
+                                while (len(rand_odors) >= condition and
+                                       all([t == o for t in
+                                            rand_odors[-condition:]])):
+                                    o = randint(0, len(odors) - 1)
+                                rand_odors.append(o)
+                            trial_odors[block] = [odors[i] for i in rand_odors]
                     else:
                         rand_odors = []
-                        for _ in range(n):
-                            o = randint(0, len(odors) - 1)
-                            while (len(rand_odors) >= condition and
-                                   all([t == o for t in
-                                        rand_odors[-condition:]])):
-                                o = randint(0, len(odors) - 1)
-                            rand_odors.append(o)
+                        for _ in range(int(ceil(n / float(equalizer)))):
+                            rand_odors.extend(self.do_equal_random(
+                                equalizer, len(odors), condition, 
+                                last_val=rand_odors[-1] if rand_odors else None))
+                        del rand_odors[n:]
                         trial_odors[block] = [odors[i] for i in rand_odors]
 
         for block, odors in enumerate(trial_odors):
@@ -605,6 +703,9 @@ class VerifyConfigStage(MoaStage):
             return val
         else:
             raise Exception('"{}" does not match an odor method'.format(val))
+
+    odor_equalizer = ConfigPropertyList(
+        0, 'Odor', 'odor_equalizer', exp_config_name, val_type=int)
 
     odor_method = ConfigPropertyList(
         'constant', 'Odor', 'odor_method', exp_config_name,
