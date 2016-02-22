@@ -132,6 +132,9 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     use_mfc = ConfigParserProperty(
         False, 'MFC', 'use_mfc', device_config_name, val_type=to_bool)
 
+    use_mfc_air = ConfigParserProperty(
+        False, 'MFC', 'use_mfc_air', device_config_name, val_type=to_bool)
+
     sound_file_r = ConfigParserProperty(
         '', 'Sound', 'sound_file_r', device_config_name, val_type=unicode_type)
 
@@ -231,24 +234,28 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
         self.daq_out_dev = daqoutcls(
             attr_map={k: ids[k].__self__ for k in daqout})
 
-        if self.use_mfc:
+        mfc = self.use_mfc
+        if mfc or self.use_mfc_air:
             air = self.mfc_names['mfc_air']
-            a = self.mfc_names['mfc_a']
-            b = self.mfc_names['mfc_b']
+            if mfc:
+                a = self.mfc_names['mfc_a']
+                b = self.mfc_names['mfc_b']
             if sim:
                 self.mfc_air = NumericPropertyChannel(
                     channel_widget=ids.mfc_air, prop_name='value')
-                self.mfc_a = NumericPropertyChannel(
-                    channel_widget=ids.mfc_a, prop_name='value')
-                self.mfc_b = NumericPropertyChannel(
-                    channel_widget=ids.mfc_b, prop_name='value')
+                if mfc:
+                    self.mfc_a = NumericPropertyChannel(
+                        channel_widget=ids.mfc_a, prop_name='value')
+                    self.mfc_b = NumericPropertyChannel(
+                        channel_widget=ids.mfc_b, prop_name='value')
             else:
                 self.mfc_air = MFC(
                     channel_widget=ids.mfc_air, prop_name='value', idx=air)
-                self.mfc_a = MFC(
-                    channel_widget=ids.mfc_a, prop_name='value', idx=a)
-                self.mfc_b = MFC(
-                    channel_widget=ids.mfc_b, prop_name='value', idx=b)
+                if mfc:
+                    self.mfc_a = MFC(
+                        channel_widget=ids.mfc_a, prop_name='value', idx=a)
+                    self.mfc_b = MFC(
+                        channel_widget=ids.mfc_b, prop_name='value', idx=b)
 
         f = self.sound_file_r or self.sound_file_l
         if f:
@@ -650,7 +657,7 @@ class VerifyConfigStage(MoaStage):
                         rand_odors = []
                         for _ in range(int(ceil(n / float(equalizer)))):
                             rand_odors.extend(self.do_equal_random(
-                                equalizer, len(odors), condition, 
+                                equalizer, len(odors), condition,
                                 last_val=rand_odors[-1] if rand_odors else None))
                         del rand_odors[n:]
                         trial_odors[block] = [odors[i] for i in rand_odors]
