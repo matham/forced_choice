@@ -10,8 +10,9 @@ from re import match, compile
 from os.path import join, isfile
 from math import ceil
 import csv
-from random import choice, randint, random, shuffle
+from random import choice, randint, random, shuffle, uniform
 from collections import defaultdict
+import numpy as np
 
 from moa.stage import MoaStage
 from moa.threads import ScheduledEventLoop
@@ -108,7 +109,7 @@ class InitBarstStage(MoaStage, ScheduledEventLoop):
     mfc_b = ObjectProperty(None, allownone=True)
 
     mfc_names = ConfigPropertyDict(
-        {'mfc_air': 0, 'mfc_a': 0, 'mfc_b': 0}, 'MFC', 'mfc_names',
+        {'mfc_air': 0, 'mfc_a': 1, 'mfc_b': 2}, 'MFC', 'mfc_names',
         device_config_name, val_type=int, key_type=str)
 
     odor_dev = ObjectProperty(None, allownone=True)
@@ -428,6 +429,8 @@ class VerifyConfigStage(MoaStage):
         with open(odor_path, 'rb') as fh:
             for row in csv.reader(fh):
                 row = [elem.strip() for elem in row]
+                if not row:
+                    continue
                 if use_mfc:
                     i, name, side, mfc = row[:4]
                 else:
@@ -468,10 +471,11 @@ class VerifyConfigStage(MoaStage):
                 self.max_nose_poke, self.sound_dur, self.odor_equalizer,
                 self.max_decision_duration, self.bad_iti,
                 self.good_iti, self.incomplete_iti, self.num_pellets,
-                self.mix_valve):
+                self.mix_valve, self.odor_beta):
             if len(item) > num_blocks:
                 raise Exception('The size of {} is larger than the number '
                                 'of blocks, {}'.format(item, num_blocks))
+        self._beta = [self.odor_beta[v] for v in range(num_blocks)]
         if any([x <= 0 for x in self.num_trials]):
             raise Exception('Number of trials is not positive for every block')
         for v in self.NO_valve:
@@ -575,6 +579,7 @@ class VerifyConfigStage(MoaStage):
         app = App.get_running_app()
         trial_odors = [None, ] * len(odor_selection)
         wfnp = self.wait_for_nose_poke
+        odor_opts = self.odor_opts = []
 
         for block, block_odors in enumerate(odor_selection):
             n = num_trials[block]
@@ -609,6 +614,7 @@ class VerifyConfigStage(MoaStage):
                     raise Exception('odors not found for block "{}" '
                                     'in the list'.format(block))
                 odors = extract_odor(read_odors[line_num][1:], block, 16)
+                odor_opts.append([])
                 if any([len(o) != 1 for o in odors]):
                     raise Exception('Number of flow rates specified for block'
                                     ' {} is not 1: {}'.format(block, odors))
@@ -618,6 +624,7 @@ class VerifyConfigStage(MoaStage):
 
                 odors = extract_odor(block_odors, block, 16)
                 odors = [o for elems in odors for o in elems]
+                odor_opts.append(odors)
 
                 # now use the method to generate the odors
                 if method == 'constant':
@@ -710,6 +717,12 @@ class VerifyConfigStage(MoaStage):
             return val
         else:
             raise Exception('"{}" does not match an odor method'.format(val))
+
+    odor_beta = ConfigPropertyList(
+        0, 'Odor', 'odor_beta', exp_config_name, val_type=int)
+
+    beta_min = ConfigParserProperty(10, 'Odor', 'beta_min', exp_config_name,
+                                    val_type=int)
 
     odor_equalizer = ConfigPropertyList(
         0, 'Odor', 'odor_equalizer', exp_config_name, val_type=int)
@@ -934,6 +947,10 @@ class AnimalStage(MoaStage):
 
     outcomes = []
 
+    odor_outcome = {}
+
+    odor_widgets = []
+
     log_filename = ConfigParserProperty('', 'Experiment', 'log_filename',
                                         exp_config_name, val_type=unicode_type)
 
@@ -953,6 +970,7 @@ class AnimalStage(MoaStage):
         odors = verify.trial_odors
         names = verify.odor_names
         sides = verify.odor_side
+        odor_widgets = self.odor_widgets = []
         PredictionGrid = Factory.get('PredictionGrid')
         TrialPrediction = Factory.get('TrialPrediction')
 
@@ -962,6 +980,8 @@ class AnimalStage(MoaStage):
             predict_add(block_grid)
             block_add = block_grid.add_widget
             w = wfnp[block]
+            block_widgets = []
+            odor_widgets.append(block_widgets)
             for trial in range(len(odors[block])):
                 if w:
                     odor = odors[block][trial]
@@ -976,6 +996,7 @@ class AnimalStage(MoaStage):
                         odor=names[odor[0]], side=side, trial=trial)
                 else:
                     trial_wid = TrialPrediction(side='rl', trial=trial)
+                block_widgets.append(trial_wid)
                 block_add(trial_wid)
 
     def initialize_box(self):
@@ -990,8 +1011,57 @@ class AnimalStage(MoaStage):
         for graph in (ids.ttnp, ids.tinp, ids.ttrp, ids.outcome):
             graph.plots[0].points = []
         self.outcomes = []
+        self.odor_outcome = defaultdict(list)
+
+    def update_trial_odor(self):
+        verify, block, trial = moas.verify, moas.block.count, moas.trial.count
+        beta = verify._beta[block]
+        beta_min = max(verify.beta_min, 1)
+        odors = verify.odor_opts[block]
+        odor_names = []
+
+        for o in odors:
+            if len(o) == 1:
+                odor_names.append(o[0][0])
+            else:
+                odor_names.append(o[0][0] if o[0][2] >= o[1][2] else o[1][0])
+
+        outcomes = self.odor_outcome
+        widget = self.odor_widgets[block][trial]
+        if not beta or not odor_names or not outcomes:
+            return
+
+        outcome_frac = np.zeros(len(odor_names))
+        for i, o in enumerate(odor_names):
+            odor_outcome = outcomes[o]
+            if len(odor_outcome) < beta_min:
+                return
+            outcome_frac[i] = sum(
+                map(int, odor_outcome)) / float(len(odor_outcome))
+
+        p = np.exp(-beta * np.array(outcome_frac))
+        p *= 1 / float(len(odor_names))
+        p /= np.sum(p)
+        k = uniform(0, 1.)
+
+        cum_sum = np.cumsum(p)
+        cum_sum[-1] = 1.
+        for i, f in enumerate(cum_sum):
+            if k < f:
+                break
+
+        odor = odor_names[i]
+        if widget.odor == odor:
+            return
+        widget.odor = odor
+        side = verify.odor_side[odor]
+        if side == '-':
+            side = u'Ø'
+        widget.side = side
+        verify.trial_odors[block][trial] = odors[i]
 
     def start_mixing(self):
+        self.update_trial_odor()
         verify, block, trial = moas.verify, moas.block.count, moas.trial.count
         barst = moas.barst
         if barst.use_mfc:
@@ -1112,6 +1182,8 @@ class AnimalStage(MoaStage):
         predict.outcome = wid.passed = passed = not timed_out and (
             not wfnp or (side == 'rl' or side == side_went))
         self.outcomes.append(int(predict.outcome))
+        if self.odor:
+            self.odor_outcome[self.odor[0]].append(passed)
 
         wid.iti = self.iti = (
             verify.good_iti[block] if passed else verify.bad_iti[block])
@@ -1157,11 +1229,17 @@ class AnimalStage(MoaStage):
         ne = self.nose_poke_exit_ts
         rp = self.reward_entry_ts
 
-        odor_idx = self.odor[0]
+        if self.odor:
+            odor_idx = self.odor[0]
+            odor_name = moas.verify.odor_names[odor_idx]
+            odor_i = 'p{}'.format(odor_idx)
+        else:
+            odor_i = odor_name = ''
+
         outcome = {'fail': 0, 'pass': 1, 'inc': 2, None: None}
         vals = [strftime('%m-%d-%Y'), self.trial_start_time, self.animal_id,
                 moas.block.count, moas.trial.count,
-                moas.verify.odor_names[odor_idx], 'p{}'.format(odor_idx),
+                odor_name, odor_i,
                 self.side, self.side_went, outcome[self.outcome],
                 bool(self.reward_side), (np - ts) if np else None,
                 (ne - np) if ne and np else None,
