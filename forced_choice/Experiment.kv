@@ -1,134 +1,121 @@
 #:kivy 1.8.1
+#:import knspace kivy.uix.behaviors.knspace.knspace
+#:import Factory kivy.factory.Factory
 
 
-<RootStage@MoaStage>:
-    on_finished: if self.finished: barst.stop_devices()
-    on_finished: if self.finished: app.timer.set_active_slice('Done')
-    InitBarstStage:
-        id: barst
-        name: 'barst'
-        on_started: if self.started: app.timer.set_active_slice('Init')
+<RootStage>:
+    knsname: 'exp_root'
+    completion_list: self.stages + [self]
+    on_stage_end:
+        knspace.time_line.set_active_slice('Done')
+        app.clean_up_root_stage()
+    MoaStage:
+        knsname: 'exp_dev_init'
+        on_stage_start:
+            knspace.time_line.set_active_slice('Init')
+            root.init_devices()
     AnimalStage:
-        name: 'animal_stage'
-        repeat: -1
+        knsname: 'exp_animal_stage'
         id: animal_stage
-        animal_id: app.next_animal_btn.animal_id
-        on_started: if self.started: animal_stage.initialize_box()
+        repeat: -1  # foreves
+        on_stage_start: self.initialize_box()
+        on_trial_start: knspace.time_line.set_active_slice('Ready')
         DigitalGateStage:
-            name: 'rat_wait'
-            device: barst.next_animal_dev
+            knsname: 'exp_animal_wait'
+            device: Factory.ButtonChannel(button=knspace.gui_next_animal)
             exit_state: True
-            on_started: if self.started: app.timer.set_active_slice('Ready')
-        VerifyConfigStage:
-            id: verify
-            name: 'verify'
-            on_finished: if self.finished: animal_stage.post_verify()
+            on_stage_end: animal_stage.initialize_animal()
         MoaStage:
-            name: 'block'
-            id: block
-            repeat: verify.num_blocks
-            on_started: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(self.count, trial.count))
-            on_count: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(self.count, trial.count))
+            knsname: 'exp_block'
+            repeat: animal_stage.config.num_blocks
+            on_trial_start: animal_stage.pre_block()
             MoaStage:
-                name: 'trial'
-                id: trial
-                repeat: verify.num_trials[block.count]
-                on_started: if self.started: animal_stage.pre_block()
-                on_count: app.timer.update_slice_attrs('NP', text='NP ({}.{})'.format(block.count, self.count))
-                on_started: app.timer.update_slice_attrs('NP', duration=verify.max_nose_poke[self.count])
-                on_started: app.timer.update_slice_attrs('Wait HP', duration=verify.max_decision_duration[self.count])
+                knsname: 'exp_trial'
+                repeat: animal_stage.config.num_trials[animal_stage.block]
+                on_trial_start: animal_stage.init_trial(knspace.exp_block, knspace.exp_trial)
                 Delay:
-                    name: 'odor_mix'
-                    delay: verify.mix_dur
-                    disabled: not verify.wait_for_nose_poke[block.count]
-                    on_started: if self.started: animal_stage.start_mixing()
+                    delay: animal_stage.config.mix_dur
+                    id: mix_stage
+                    disabled: not animal_stage.config.wait_for_nose_poke[animal_stage.block]
                 DigitalGateStage:
-                    name: 'house_light_on'
-                    device: barst.daq_out_dev
+                    device: knspace.daqout
                     exit_state: True
-                    state_attr: 'house_light'
-                    on_started: if self.started: barst.daq_out_dev.set_state(high=['house_light'])
-                    on_finished: if self.finished: animal_stage.pre_trial()
+                    state_prop: 'house_light'
+                    on_stage_start: knspace.daqout.set_state(high=['house_light'])
+                    on_stage_end: animal_stage.pre_trial()
                 DigitalGateStage:
-                    name: 'nose_poke_wait'
-                    disabled: not verify.wait_for_nose_poke[block.count]
-                    device: barst.daq_in_dev
+                    disabled: not animal_stage.config.wait_for_nose_poke[animal_stage.block]
+                    device: knspace.daqin
                     exit_state: True
-                    state_attr: 'nose_beam'
-                    on_finished: if self.finished: animal_stage.do_nose_poke()
-                    on_started: if self.started: app.timer.set_active_slice('Wait NP')
+                    state_prop: 'nose_beam'
+                    on_stage_start: knspace.time_line.set_active_slice('Wait NP')
+                    on_stage_end: animal_stage.do_nose_poke()
                 DigitalGateStage:
-                    name: 'wait_nose_poke_exit'
-                    disabled: not verify.wait_for_nose_poke[block.count]
-                    device: barst.daq_in_dev
+                    disabled: not animal_stage.config.wait_for_nose_poke[animal_stage.block]
+                    device: knspace.daqin
                     exit_state: False
-                    state_attr: 'nose_beam'
-                    max_duration: verify.max_nose_poke[block.count]
-                    on_finished: if self.finished: animal_stage.do_nose_poke_exit(self.timed_out)
+                    state_prop: 'nose_beam'
+                    max_duration: animal_stage.config.max_nose_poke[animal_stage.block]
                     completion_list: [self]
-                    on_started: if self.started: app.timer.set_active_slice('NP')
+                    on_stage_start: knspace.time_line.set_active_slice('NP')
+                    on_stage_end: animal_stage.do_nose_poke_exit(self.timed_out)
                     Delay:
-                        name: 'odor_delay'
-                        delay: verify.odor_delay[block.count]
-                        on_finished: if self.finished: animal_stage.do_odor_release()
+                        delay: animal_stage.config.odor_delay[animal_stage.block]
+                        on_stage_end: animal_stage.do_odor_release()
                     Delay:
-                        id: min_nose_poke
-                        delay: verify.min_nose_poke[block.count]
-                        disabled: not verify.min_nose_poke[block.count]
+                        delay: animal_stage.config.min_nose_poke[animal_stage.block]
+                        disabled: not animal_stage.config.min_nose_poke[animal_stage.block]
                     Delay:
                         delay_type: 'random'
-                        max: verify.sound_cue_delay[block.count]
-                        disabled: not verify.sound_cue_delay[block.count]
+                        max: animal_stage.config.sound_cue_delay[animal_stage.block]
+                        disabled: sound_delay.disabled or not animal_stage.config.sound_cue_delay[animal_stage.block]
                     Delay:
-                        delay: verify.sound_dur[block.count]
-                        disabled: animal_stage.sound is None
-                        on_started: if self.started: animal_stage.sound.set_state(True)
-                        on_finished: if self.finished: animal_stage.sound.set_state(False)
+                        id: sound_delay
+                        delay: animal_stage.config.sound_dur[animal_stage.block]
+                        disabled: not animal_stage.config.sound_dur[animal_stage.block] or not animal_stage.sound
+                        on_stage_start: animal_stage.sound.set_state(True)
+                        on_stage_end: animal_stage.sound.set_state(False)
                 MoaStage:
-                    name: 'decision_stage'
                     disabled: animal_stage.reward_side is False
-                    max_duration: verify.max_decision_duration[block.count]
-                    on_finished: if self.finished: animal_stage.do_decision(not reward_entry_r.stopped, not reward_entry_l.stopped, self.timed_out)
+                    max_duration: animal_stage.config.max_decision_duration[animal_stage.block]
                     completion_type: 'any'
                     order: 'parallel'
-                    completion_list: [self, reward_entry_r, reward_entry_l]
-                    on_started: if self.started: app.timer.set_active_slice('Wait HP')
+                    on_stage_start: knspace.time_line.set_active_slice('Wait HP')
+                    on_stage_end: animal_stage.do_decision(not reward_entry_r.stopped, not reward_entry_l.stopped, self.timed_out)
                     DigitalGateStage
                         id: reward_entry_r
-                        device: barst.daq_in_dev
+                        device: knspace.daqin
                         exit_state: True
-                        state_attr: 'reward_beam_r'
+                        state_prop: 'reward_beam_r'
                     DigitalGateStage
                         id: reward_entry_l
-                        device: barst.daq_in_dev
+                        device: knspace.daqin
                         exit_state: True
-                        state_attr: 'reward_beam_l'
-                        on_started: if self.started: 10
+                        state_prop: 'reward_beam_l'
                 MoaStage:
-                    repeat: verify.num_pellets[block.count]
-                    disabled: animal_stage.reward_side is False
-                    name: 'reward_stage'
                     id: reward_stage
-                    on_started: if self.started: app.timer.set_active_slice('Reward')
+                    repeat: animal_stage.config.num_pellets[animal_stage.block]
+                    disabled: animal_stage.reward_side is False
+                    on_stage_start: knspace.time_line.set_active_slice('Reward')
                     Delay:
                         disabled: not reward_stage.count
                         delay: 0.9
                     DigitalGateStage:
-                        device: barst.daq_out_dev
+                        device: knspace.daqout
                         exit_state: True
-                        state_attr: '' if not animal_stage.reward_side else animal_stage.reward_side
-                        on_started: if self.started: barst.daq_out_dev.set_state(high=[animal_stage.reward_side])
+                        state_prop: animal_stage.reward_side or ''
+                        on_stage_start: knspace.daqout.set_state(high=[animal_stage.reward_side])
                     Delay:
                         delay: 0.01
                     DigitalGateStage:
-                        device: barst.daq_out_dev
+                        device: knspace.daqout
                         exit_state: False
-                        state_attr: '' if not animal_stage.reward_side else animal_stage.reward_side
-                        on_started: if self.started: barst.daq_out_dev.set_state(low=[animal_stage.reward_side])
+                        state_prop: animal_stage.reward_side or ''
+                        on_stage_start: knspace.daqout.set_state(low=[animal_stage.reward_side])
                 Delay:
-                    name: 'iti'
-                    on_started: if self.started: app.timer.update_slice_attrs('ITI', duration=animal_stage.iti)
-                    delay: max(animal_stage.iti - verify.mix_dur, 0)
-                    on_started: if self.started: barst.daq_out_dev.set_state(low=['house_light'])
-                    on_finished: if self.finished: animal_stage.post_trial()
-                    on_started: if self.started: app.timer.set_active_slice('ITI')
+                    delay: max(animal_stage.iti - animal_stage.config.mix_dur, 0) if not mix_stage.disabled else animal_stage.iti
+                    on_stage_start:
+                        knspace.time_line.update_slice_attrs('ITI', duration=animal_stage.iti)
+                        knspace.time_line.set_active_slice('ITI')
+                        knspace.daqout.set_state(low=['house_light'])
+                    on_stage_end: animal_stage.post_trial()

@@ -1,10 +1,7 @@
-.. documentation master file, created by
-   sphinx-quickstart on Mon Dec 23 18:07:03 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. ForcedChoice documentation master file.
 
-Welcome to the GO/NoGo experiment' documentation!
-==================================================
+Welcome to ForcedChoice's documentation!
+=========================================
 
 Contents:
 
@@ -14,7 +11,9 @@ Contents:
    installation.rst
    getting_started.rst
 
-   api.rst
+   config.rst
+
+   api/api.rst
 
 * :ref:`genindex`
 * :ref:`modindex`

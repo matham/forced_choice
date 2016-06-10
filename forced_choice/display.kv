@@ -1,8 +1,7 @@
 #:kivy 1.8.1
-#:import Factory kivy.factory.Factory
 #:import rgb kivy.utils.get_color_from_hex
 #:import MeshLinePlot kivy.garden.graph.MeshLinePlot
-#:import moas moa.base.named_moas
+#:import knspace kivy.uix.behaviors.knspace.knspace
 
 
 # the root level widget
@@ -17,46 +16,61 @@
             size: self.minimum_size
             cols: 1
             spacing: [0, 50]
-            ExperimentControl
-                GridLayout:
-                    cols: 1
-                    size_hint_x: None
-                    width: 100
-                    padding: [5]
-                    spacing: [5]
-                    TextInput:
-                        id: animal_id
-                        height: 2 * self.line_height + 5
-                        size_hint_y: None
-                    Button:
-                        text: 'Next'
-                        on_parent: app.next_animal_btn = self
-                        disabled: app.app_state != 'running'
-                        animal_id: animal_id.text
             GridLayout:
                 rows: 1
                 size_hint: None, None
-                size: self.minimum_size
-                TimeLine
-                    on_parent: app.timer = self
-                Label:
+                width: self.minimum_width
+                height: '50dp'
+                spacing: '10dp'
+                BrowseButton:
+                    disabled: bool(knspace.exp_root) and knspace.exp_root.started and not knspace.exp_root.finished
+                    id: browse
+                RecoverCheck:
+                    disabled: browse.disabled or not app.recovery_file or not isfile(app.recovery_file)
+                    id: recover
+                AppStartButton:
+                    knsname: 'gui_start_stop'
+                    on_release: app.start_stage(recover=recover.state == 'down') if self.state == 'down' else app.stop_experiment()
+                    disabled:
+                        bool(knspace.exp_dev_init) and knspace.exp_dev_init.started and not knspace.exp_dev_init.finished \
+                        or bool(knspace.exp_root) and knspace.exp_root.finishing and not knspace.exp_root.finished
+                ExperimentSelection:
+                    id: gui_trial_type
+                    knsname: 'gui_trial_type'
+                    disabled: not knspace.exp_animal_wait or not knspace.exp_animal_wait.started or knspace.exp_animal_wait.finished
+                    values: sorted(knspace.exp_root.configs.keys()) if knspace.exp_root and knspace.exp_root.configs else ['']
+                KNTextInput:
+                    knsname: 'gui_animal_id'
+                    disabled: gui_trial_type.disabled
                     size_hint_x: None
-                    width: 0
-                    width: max(self.texture_size[0], self.width)
+                    width: '100dp'
+                ContinueButton:
+                    knsname: 'gui_next_animal'
+                    disabled: gui_trial_type.disabled
+                AppErrorIndicator
+            GridLayout:
+                rows: 1
+                size_hint_y: None
+                height: self.minimum_height
+                TimeLine
+                    knsname: 'time_line'
+                Label:
+                    size_hint: None, None
+                    size: self.texture_size
                     markup: True
                     color: (.8, .4, 0, 1)
                     halign: 'center'
-                    total_pass: moas.animal_stage.total_pass if moas.animal_stage else 0
-                    total_fail: moas.animal_stage.total_fail if moas.animal_stage else 0
-                    total_incomplete: moas.animal_stage.total_incomplete if moas.animal_stage else 0
+                    total_pass: knspace.exp_animal_stage.total_pass if knspace.exp_animal_stage else 0
+                    total_fail: knspace.exp_animal_stage.total_fail if knspace.exp_animal_stage else 0
+                    total_incomplete: knspace.exp_animal_stage.total_incomplete if knspace.exp_animal_stage else 0
                     text: 'PASS: [color=33CC33]{}[/color]\nFAIL: [color=ff2222]{} ({})[/color]'.format(self.total_pass, self.total_fail, self.total_incomplete)
             ScrollView:
                 scroll_type: ['bars']
                 bar_width: 10
                 size_hint_y: None
                 height: 80
-                GridLayout:
-                    id: prediction_container
+                NamedGridLayout:
+                    knsname: 'gui_prediction_container'
                     size_hint: None, None
                     size: self.minimum_size
                     cols: 1
@@ -66,15 +80,19 @@
                 rows: 1
                 spacing: [20, 0]
                 SimDevs:
-                    id: simulated_devices
+                    disabled:
+                        bool(knspace.exp_root) and (knspace.exp_root.started and
+                        not knspace.exp_dev_init.finished \
+                        or knspace.exp_root.finishing and not knspace.exp_root.finished)
                 ScrollView:
                     size_hint: None, None
                     size: results_container.children[-1].width if True else results_container.width, results_container.height
                     do_scroll_y: False
                     scroll_type: ['bars']
                     bar_width: 10
-                    GridLayout:
+                    NamedGridLayout:
                         id: results_container
+                        knsname: 'gui_results_container'
                         size_hint: None, None
                         size: self.minimum_size
                         rows: 1
@@ -89,46 +107,42 @@
         max_size: root.width
         keep_within_parent: True
         rescale_with_parent: True
-        ScrollView:
-            scroll_type: ['bars']
-            bar_width: 10
-            GridLayout:
-                id: graphs
-                cols: 2
-                size_hint_x: None
-                width: self.minimum_width
-                padding: [20]
-                spacing: [30]
-                TrialGraph:
-                    id: ttnp
-                    ylabel: 'TTNP'
-                    y_ticks_major: 5
-                    ymax: 20
-                    on_parent: self.add_plot(MeshLinePlot(color=rgb('7dac9f')))
-                TrialGraph:
-                    id: tinp
-                    ylabel: 'TINP'
-                    y_ticks_major: .25
-                    ymax: 3
-                    on_parent: self.add_plot(MeshLinePlot(color=rgb('dc7062')))
-                TrialGraph:
-                    id: ttrp
-                    ylabel: 'TTRP'
-                    y_ticks_major: .25
-                    ymax: 2
-                    on_parent: self.add_plot(MeshLinePlot(color=rgb('66a8d4')))
-                TrialGraph:
-                    id: outcome
-                    ylabel: 'Outcome'
-                    y_ticks_major: 25
-                    ymax: 100.
-                    on_parent: self.add_plot(MeshLinePlot(color=rgb('e5b060')))
+        GridLayout:
+            cols: 2
+            size_hint_x: None
+            width: self.minimum_width
+            padding: [20]
+            spacing: [30]
+            TrialGraph:
+                knsname: 'gui_ttnp'
+                ylabel: 'TTNP'
+                y_ticks_major: 5
+                ymax: 20
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('7dac9f')))
+            TrialGraph:
+                knsname: 'gui_tinp'
+                ylabel: 'TINP'
+                y_ticks_major: .25
+                ymax: 3
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('dc7062')))
+            TrialGraph:
+                knsname: 'gui_ttrp'
+                ylabel: 'TTRP'
+                y_ticks_major: .25
+                ymax: 2
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('66a8d4')))
+            TrialGraph:
+                knsname: 'gui_outcome'
+                ylabel: 'Outcome'
+                y_ticks_major: 25
+                ymax: 100.
+                on_parent: self.add_plot(MeshLinePlot(color=rgb('e5b060')))
 
 
-<TrialGraph@Graph>:
+<TrialGraph@KNSpaceBehavior+Graph>:
     size_hint_x: None
     width: 450
-    xmax: max(1, moas.animal_stage.num_trials if moas.animal_stage else self.xmax)
+    xmax: max(knspace.exp_animal_stage.config.num_trials) if knspace.exp_animal_stage else self.xmax
     xlabel: 'Trial'
     label_options: {'color': rgb('444444'), 'bold': True}
     background_color: rgb('000000')
@@ -143,7 +157,7 @@
     y_ticks_minor: 5
 
 
-<MFCDisplay@GridLayout>:
+<MFCDisplay@NamedGridLayout>:
     cols: 1
     value: 0.0
     width: 70
@@ -151,7 +165,6 @@
     size_hint_x: None
     on_value: if not text.focus: text.text = str(self.value)
     dev_name: ''
-    disabled: app.app_state == 'clear' or app.app_state == 'exception'
     Label:
         size_hint_y: None
         height: self.texture_size[1]
@@ -165,7 +178,7 @@
         on_text_validate: root.value = float(self.text) if self.text else 0.
         on_focus: if not self.focus: self.text = str(root.value)
 
-<DevContainer@GridLayout>:
+<DevContainer@NamedGridLayout>:
     size_hint: None, None
     size: self.minimum_size
     cols: 8
@@ -176,75 +189,73 @@
     cols: 1
     size_hint: None, None
     size: self.minimum_size
-    on_parent: app.simulation_devices = self
     DevContainer:
-        id: odors
+        knsname: 'gui_odors'
     Widget:
         size_hint_y: None
         height: 20
     DevContainer:
-        ToggleDevice:
-            id: house_light
+        SwitchIcon:
+            knsname: 'gui_house_light'
             text: 'House light'
-        ToggleDevice:
-            id: nose_beam
+        SwitchIcon:
+            knsname: 'gui_nose_beam'
             text: 'Nose beam'
-        ToggleDevice:
-            id: sound_l
+        SwitchIcon:
+            knsname: 'gui_sound_l'
             text: 'L-sound'
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        ToggleDevice:
-            id: reward_beam_l
+        SwitchIcon:
+            knsname: 'gui_reward_beam_l'
             text: 'L-beam'
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        ToggleDevice:
-            id: feeder_l
+        SwitchIcon:
+            knsname: 'gui_feeder_l'
             text: 'L-feeder'
             background_down: 'light-blue-led-on-th.png'
             background_normal: 'light-blue-led-off-th.png'
-        ToggleDevice:
-            id: sound_r
+        SwitchIcon:
+            knsname: 'gui_sound_r'
             text: 'R-sound'
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        ToggleDevice:
-            id: reward_beam_r
+        SwitchIcon:
+            knsname: 'gui_reward_beam_r'
             text: 'R-beam'
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        ToggleDevice:
-            id: feeder_r
+        SwitchIcon:
+            knsname: 'gui_feeder_r'
             text: 'R-feeder'
             background_down: 'purple-led-on-th.png'
             background_normal: 'purple-led-off-th.png'
-        ToggleDevice:
-            id: ir_leds
+        SwitchIcon:
+            knsname: 'gui_ir_leds'
             text: 'IR'
-        ToggleDevice:
-            id: fans
+        SwitchIcon:
+            knsname: 'gui_fans'
             text: 'Fans'
         MFCDisplay:
-            id: mfc_air
+            knsname: 'gui_mfc_air'
             dev_name: 'MFC air'
         MFCDisplay:
-            id: mfc_a
+            knsname: 'gui_mfc_a'
             dev_name: 'MFC a'
         MFCDisplay:
-            id: mfc_b
+            knsname: 'gui_mfc_b'
             dev_name: 'MFC b'
         Widget:
             size_hint_x: None
             width: 30
         SwitchIcon:
-            id: simulate
+            knsname: 'gui_simulate'
+            disabled: bool(knspace.exp_root) and knspace.exp_root.started and not knspace.exp_root.finished
             text: 'Simulate?'
             text_height: 30
             background_down: 'checkbox-checked-gray-th.png'
             background_normal: 'checkbox-unchecked-gray-th.png'
-            disabled: app.app_state != 'clear'
-            on_state: app.simulate = self.state == 'down'
 
 
 # a formatted label of header and single line value

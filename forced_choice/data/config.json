@@ -1,0 +1,97 @@
+{
+    "_experiment": {
+        "default": {
+            "NO_valve": "p0",
+            "air_rate": [0],
+            "bad_iti": [4],
+            "beta_trials_max": 15,
+            "beta_trials_min": 10,
+            "good_iti": [3],
+            "incomplete_iti": [4],
+            "max_decision_duration": [20.0],
+            "max_nose_poke": [10.0],
+            "mfc_a_rate": [0.1],
+            "mfc_b_rate": [0.1],
+            "min_nose_poke": [0],
+            "mix_dur": 1.5,
+            "mix_valve": "p7",
+            "num_blocks": 3,
+            "num_pellets": [2],
+            "num_trials": [10],
+            "odor_beta": [0],
+            "odor_delay": [0],
+            "odor_equalizer": [6,8],
+            "odor_method": [
+                "constant",
+                "random2"
+            ],
+            "odor_path": "odor_list.txt",
+            "odor_selection": [
+                [
+                    "p1"
+                ],
+                [
+                    "p1",
+                    "p2"
+                ]
+            ],
+            "sound_cue_delay": [0],
+            "sound_dur": [0],
+            "wait_for_nose_poke": [false,true]
+        }
+    },
+    "app": {
+        "inspect": false
+    },
+    "barst_server": {
+        "server_path": "",
+        "server_pipe": ""
+    },
+    "daqin": {
+        "SAS_chan": 0,
+        "nose_beam_pin": 1,
+        "reward_beam_l_pin": 2,
+        "reward_beam_r_pin": 3
+    },
+    "daqout": {
+        "SAS_chan": 0,
+        "fans_pin": 5,
+        "feeder_l_pin": 0,
+        "feeder_r_pin": 2,
+        "house_light_pin": 4,
+        "ir_leds_pin": 6
+    },
+    "devices": {
+        "filter_len": 1,
+        "log_filename": "{animal}_%m-%d-%Y_%I-%M-%S_%p.csv",
+        "n_valve_boards": 2,
+        "sound_file_l": "Tone.wav",
+        "sound_file_r": "Tone.wav",
+        "use_mfc": false,
+        "use_mfc_air": false
+    },
+    "ftdi_chan": {
+        "ftdi_desc": "",
+        "ftdi_serial": ""
+    },
+    "mfc_a": {
+        "mfc_id": 0,
+        "port_name": ""
+    },
+    "mfc_air": {
+        "mfc_id": 0,
+        "port_name": ""
+    },
+    "mfc_b": {
+        "mfc_id": 0,
+        "port_name": ""
+    },
+    "odors": {
+        "clock_bit": 0,
+        "clock_size": 20,
+        "data_bit": 0,
+        "latch_bit": 0,
+        "num_boards": 1,
+        "output": true
+    }
+}
