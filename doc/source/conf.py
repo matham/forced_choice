@@ -3,6 +3,7 @@
 from functools import partial
 
 import forced_choice
+import kivy
 from forced_choice.main import ForcedChoiceApp
 from cplcom.config import create_doc_listener, write_config_attrs_rst
 
