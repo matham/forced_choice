@@ -29,10 +29,12 @@
             knsname: 'exp_block'
             repeat: animal_stage.config.num_blocks
             on_trial_start: animal_stage.pre_block()
+            restore_properties: ['count']
             MoaStage:
                 knsname: 'exp_trial'
                 repeat: animal_stage.config.num_trials[animal_stage.block]
                 on_trial_start: animal_stage.init_trial(knspace.exp_block, knspace.exp_trial)
+                restore_properties: ['count']
                 Delay:
                     delay: animal_stage.config.mix_dur
                     id: mix_stage

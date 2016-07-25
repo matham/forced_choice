@@ -4,7 +4,7 @@ from functools import partial
 
 import forced_choice
 from forced_choice.main import ForcedChoiceApp
-from cplcom.moa.config import create_doc_listener, write_config_attrs_rst
+from cplcom.config import create_doc_listener, write_config_attrs_rst
 
 extensions = [
     'sphinx.ext.autodoc',

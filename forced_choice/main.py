@@ -26,9 +26,6 @@ class ForcedChoiceApp(ExperimentApp):
     '''
 
     def __init__(self, **kwargs):
-        self.data_directory = join(dirname(__file__), 'data')
-        resource_add_path(join(dirname(dirname(__file__)), 'media'))
-
         super(ForcedChoiceApp, self).__init__(**kwargs)
         Builder.load_file(join(dirname(__file__), 'Experiment.kv'))
 

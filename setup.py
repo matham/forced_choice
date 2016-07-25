@@ -26,5 +26,6 @@ setup(
     install_requires=['moa', 'pybarst', 'ffpyplayer', 'cplcom'],
     setup_requires=['moa', 'pybarst', 'ffpyplayer', 'cplcom'],
     package_data={'forced_choice': ['data/*', '*.kv']},
-    entry_points={'console_scripts': ['forced_choice=forced_choice.main:run_app']},
+    entry_points={'console_scripts':
+                  ['forced_choice=forced_choice.main:run_app']},
     )
