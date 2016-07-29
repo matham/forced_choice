@@ -53,7 +53,7 @@ build_script:
 
     Check-Error
 
-    python -m pip install pybarst ffpyplayer https://github.com/matham/cplcom/archive/master.zip https://github.com/matham/moa/archive/master.zip
+    python -m pip install numpy pybarst ffpyplayer https://github.com/matham/cplcom/archive/master.zip https://github.com/matham/moa/archive/master.zip
 
     Check-Error
 

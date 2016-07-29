@@ -11,6 +11,7 @@ Dependencies
     * `CPLCom <https://matham.github.io/cplcom/installation.html>`_
     * `FFPyPlayer <https://matham.github.io/ffpyplayer/installation.html>`_
     * `PyBarst <https://matham.github.io/pybarst/installation.html>`_
+    * numpy (``pip install numpy``)
 
 ForcedChoice
 -------------
