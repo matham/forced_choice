@@ -61,6 +61,10 @@ build_script:
 
     Check-Error
 
+    garden install graph --kivy
+
+    Check-Error
+
     python -m pip install -e .
 
     Check-Error
