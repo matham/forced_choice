@@ -1,0 +1,563 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>forced_choice Config &mdash; VetCond 0.1-dev documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1-dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="VetCond 0.1-dev documentation" href="index.html" />
+    <link rel="next" title="The ForcedChoice API" href="api/api.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="forced-choice-config">
+<h1>forced_choice Config<a class="headerlink" href="#forced-choice-config" title="Permalink to this headline">¶</a></h1>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">_experiment - default:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>NO_valve</cite>: p0</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the normally open
+(mineral oil) odor valve. I.e. the valve which is normally open and closes
+during the trial when the odor is released.</dd>
+<dt><cite>air_rate</cite>: [0]</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the flow rate for the
+air stream using the air MFC when <code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code> or
+<code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc_air</span></code>.</dd>
+<dt><cite>bad_iti</cite>: [4]</dt>
+<dd>The ITI duration of a failed trial.</dd>
+<dt><cite>beta_trials_max</cite>: 15</dt>
+<dd><p class="first">For each odor, it is the last <code class="xref py py-attr docutils literal"><span class="pre">beta_trials_max</span></code> trials (of that
+odor) to take into account when computing the accuracy rate for that odor.</p>
+<p class="last">Trials for this odor further back in history than <code class="xref py py-attr docutils literal"><span class="pre">beta_trials_max</span></code>
+specific to this odor are dropped.</p>
+</dd>
+<dt><cite>beta_trials_min</cite>: 10</dt>
+<dd>The minimum number of trials for each odor that must have occured before
+<code class="xref py py-attr docutils literal"><span class="pre">odor_beta</span></code> bias compensation is activated. If the number of trial
+that occurred for any odor is less than <code class="xref py py-attr docutils literal"><span class="pre">beta_trials_min</span></code>, bias
+compensation is disabled.</dd>
+<dt><cite>good_iti</cite>: [3]</dt>
+<dd>The ITI duration of a passed trial.</dd>
+<dt><cite>incomplete_iti</cite>: [4]</dt>
+<dd>The ITI duration of a trial where the animal did not hold its nose long
+enough in the nose port and <code class="xref py py-attr docutils literal"><span class="pre">min_nose_poke</span></code> was not satisfied.</dd>
+<dt><cite>max_decision_duration</cite>: [20.0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the maximum duration
+of the decision stage. After this duration, the stage will terminate and
+proceed to the ITI stage even if the animal didn&#8217;t visit the reward port.</p>
+<p>The decision determines whether a reward is dispensed and the duration of
+the ITI.</p>
+<p class="last">If zero, there is no maximum.</p>
+</dd>
+<dt><cite>max_nose_poke</cite>: [10.0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the maximum duration
+of the nose port stage. After this duration, the stage will terminate and
+proceed to the decision stage even if the animal is still in the nose port.</p>
+<p class="last">If zero, there is no maximum.</p>
+</dd>
+<dt><cite>mfc_a_rate</cite>: [0.1]</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the flow rate for the
+odor stream a using the odor a MFC when <code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code>.</dd>
+<dt><cite>mfc_b_rate</cite>: [0.1]</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the flow rate for the
+odor stream b using the odor b MFC when <code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code>.</dd>
+<dt><cite>min_nose_poke</cite>: [0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the minimum duration
+in the nose port AFTER the odor is released (i.e. <code class="xref py py-attr docutils literal"><span class="pre">odor_delay</span></code>).
+A nose port exit less than this duration will result in an incomplete
+trial. The ITI will then be <code class="xref py py-attr docutils literal"><span class="pre">incomplete_iti</span></code>.</p>
+<p class="last">If zero, there is no minimum.</p>
+</dd>
+<dt><cite>mix_dur</cite>: 1.5</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, how long to pass the
+air stream through the odor vials before the trial starts (during
+the last ITI).</p>
+<p class="last">This ensures that when the animal enters the nose port, the odor is stream
+is already saturated. During this time the odor is directed to teh vaccum.</p>
+</dd>
+<dt><cite>mix_valve</cite>: p7</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the valve that directs
+the odor to go to vacuum or to the animal. Before the odor goes to the
+animal, the odor is mixed and evacuated to vacuum in order to saturate the
+air stream into a steady state condition.</dd>
+<dt><cite>num_blocks</cite>: 3</dt>
+<dd><p class="first">The number of blocks to run. Each block runs <code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code> trials.</p>
+<p>All the configuration parameters that are lists, e.g. <code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code>
+can specify a different value for each block.</p>
+<p class="last">If the number of elements in these lists are less than the number of
+blocks, the last value of the list is used for the remaining blocks. E.g.
+for 10 blocks, if <code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code> is <code class="docutils literal"><span class="pre">[5,</span> <span class="pre">6,</span> <span class="pre">2]</span></code>, then blocks 2 - 9
+will have 2 trials.</p>
+</dd>
+<dt><cite>num_pellets</cite>: [2]</dt>
+<dd>The number of sugar pellets to deliver upon a successful trial.</dd>
+<dt><cite>num_trials</cite>: [10]</dt>
+<dd>A list of the number of trials to run for each block of
+<code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>.</dd>
+<dt><cite>odor_beta</cite>: [0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the beta value to use
+when compensating for unequal side performance. This compensation is
+applied dynamically during the trials on top of any previous odor
+computations.</p>
+<p>We keep track of the accuracy rate of every odor (i.e. how often the animal
+chooses the incorrectly for that odor). Then, odors where the animal
+performed poorly will get presented with a higher probability.</p>
+<p>A <code class="xref py py-attr docutils literal"><span class="pre">odor_beta</span></code> value of zero disables this bias compensation. A value
+of e.g. 10, will bias very strongly towards changing the next trial odor
+to be a odor in which the animal performed poorly. The closer to zero, the
+lower such bias compensation. A value of 2-3 is reasonable.</p>
+<p class="last">The trials are accumulated across blocks so a new block does not clear the
+odor bias history.</p>
+</dd>
+<dt><cite>odor_delay</cite>: [0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, how long to delay the
+odor delivery onset from when the animal enters the nose port.</p>
+<p class="last">If zero, there&#8217;s no delay.</p>
+</dd>
+<dt><cite>odor_equalizer</cite>: [6, 8]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the number of trials
+during which all the odors for that block will be presented an equal
+number of times.</p>
+<p>That is, during these exclusively grouped <code class="xref py py-attr docutils literal"><span class="pre">odor_equalizer</span></code> trials,
+no odor will be presented more times than any other odor.</p>
+<p class="last">The number of odors for each block listed in <code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code> must
+divide without remainder the <code class="xref py py-attr docutils literal"><span class="pre">odor_equalizer</span></code> value for that block.</p>
+</dd>
+<dt><cite>odor_method</cite>: [&#8216;constant&#8217;, &#8216;random2&#8217;]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the method used to
+determine which odor to use in the trials for the odors listed in
+<code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code>.</p>
+<p>Possible methods are <cite>constant</cite>, <cite>randomx</cite>, or <cite>list</cite>.
+<code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code> is used to select the odor to be used with this
+method.</p>
+<blockquote class="last">
+<div><dl class="docutils">
+<dt><cite>constant</cite>:</dt>
+<dd><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code> is a 2d list of odors of length
+<code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>. Each element in the outer list is a single
+element list containing the odor that is used for all the trials of
+that block.</dd>
+<dt><cite>randomx</cite>: x is a number or empty</dt>
+<dd><p class="first"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code> is a 2d list of odors of length
+<code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>. Each inner list is a list of odors from which
+the trial odor would be randomly selected for each trial in the
+block.</p>
+<p class="last">If the method is <code class="docutils literal"><span class="pre">random</span></code>, the odor is randomly selected
+from that list. If random is followed by an integer, e.g.
+<code class="docutils literal"><span class="pre">random2</span></code>, then it&#8217;s random with the condition that no odor can
+be repeated more then x (2 in this) times successively.</p>
+</dd>
+<dt><cite>list</cite>:</dt>
+<dd><p class="first"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code> is a 2d list of filenames. The files are
+read for each block and the odors listed in the file is used for
+the trials.</p>
+<p>The structure of the text file is a line for each block. Each line
+is a comma separated list, with the first column being the block
+number and the other column the odors to use for that block.</p>
+<p class="last">Each inner list in the 2d list (line) can only have a
+single filename for that block.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd>
+<dt><cite>odor_path</cite>: odor_list.txt</dt>
+<dd><p class="first">The filename of a file containing the names of odors and which side to
+reward that odor.</p>
+<p>The structure of the file is as follows: each line
+describes an odor and is a 3 or 4 column comma separated list of
+<code class="docutils literal"><span class="pre">(idx,</span> <span class="pre">name,</span> <span class="pre">side,</span> <span class="pre">mfc)</span></code>, where idx is the zero-based valve index.
+Name is the odor name. And side is the side of the odor to reward
+(r, l, rl, lr, or -).
+If using an mfc, the 4th column is either <code class="docutils literal"><span class="pre">a</span></code>, or <code class="docutils literal"><span class="pre">b</span></code> indicating the
+mfc to use of that valve.</p>
+<p>An example file is:</p>
+<div class="last highlight-default"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">mineral</span> <span class="n">oil</span><span class="p">,</span> <span class="n">r</span>
+<span class="mi">4</span><span class="p">,</span> <span class="n">citric</span> <span class="n">acid</span><span class="p">,</span> <span class="n">rl</span>
+<span class="mi">5</span><span class="p">,</span> <span class="n">limonene</span><span class="p">,</span> <span class="n">l</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</dd>
+<dt><cite>odor_selection</cite>: [[&#8216;p1&#8217;], [&#8216;p1&#8217;, &#8216;p2&#8217;]]</dt>
+<dd>A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, a inner list of odors
+used to select from trial odors for each block. See <code class="xref py py-attr docutils literal"><span class="pre">odor_method</span></code>.</dd>
+<dt><cite>sound_cue_delay</cite>: [0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the random amount
+of time to delay the sound cue AFTER <code class="xref py py-attr docutils literal"><span class="pre">min_nose_poke</span></code> elapsed. It&#8217;s
+a value between zero and <code class="xref py py-attr docutils literal"><span class="pre">sound_cue_delay</span></code>.</p>
+<p class="last">If zero or if <code class="xref py py-attr docutils literal"><span class="pre">sound_dur</span></code> is zero, there is no delay.</p>
+</dd>
+<dt><cite>sound_dur</cite>: [0]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, the duration to play
+the sound cue after <code class="xref py py-attr docutils literal"><span class="pre">sound_cue_delay</span></code>. It plays either
+<code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_file_r</span></code> or <code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_file_l</span></code> depending
+on the trial odor.</p>
+<p class="last">If zero, no sound is played.</p>
+</dd>
+<dt><cite>wait_for_nose_poke</cite>: [False, True]</dt>
+<dd><p class="first">A list of, for each block in <code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code>, whether to wait for a
+nose poke or to immediately go to the reward stage.</p>
+<p class="last">When False, entering the reward port will dispense reward and end the
+trial. The ITI will then be <code class="xref py py-attr docutils literal"><span class="pre">good_iti</span></code> for that block.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">app:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>inspect</cite>: False</dt>
+<dd>Enables GUI inspection. If True, it is activated by hitting ctrl-e in
+the GUI.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">barst_server:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>server_path</cite>:</dt>
+<dd><p class="first">The full path to the Barst executable. Could be empty if the server
+is already started, on remote computer, or if it&#8217;s in the typical
+<cite>Program Files</cite> path or came installed with the wheel. If the server is not
+running, this executable is needed to launch the server.</p>
+<p class="last">Defaults to <cite>&#8216;&#8217;</cite>.</p>
+</dd>
+<dt><cite>server_pipe</cite>:</dt>
+<dd><p class="first">The full path to the pipe name (to be) used by the server. Examples are
+<code class="docutils literal"><span class="pre">\remote_name\pipe\pipe_name</span></code>, where <code class="docutils literal"><span class="pre">remote_name</span></code> is the name of
+the remote computer, or a period (<cite>.</cite>) if the server is local, and
+<code class="docutils literal"><span class="pre">pipe_name</span></code> is the name of the pipe used to create the server.</p>
+<p class="last">Defaults to <cite>&#8216;&#8217;</cite>.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">daqin:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>SAS_chan</cite>: 0</dt>
+<dd><p class="first">The channel number of the Switch &amp; Sense 8/8 as configured in InstaCal.</p>
+<p class="last">Defaults to zero.</p>
+</dd>
+<dt><cite>nose_beam_pin</cite>: 1</dt>
+<dd><p class="first">The port in the Switch &amp; Sense to which the nose port photobeam is
+connected to.</p>
+<p class="last">Defaults to 1.</p>
+</dd>
+<dt><cite>reward_beam_l_pin</cite>: 2</dt>
+<dd><p class="first">The port in the Switch &amp; Sense to which the left reward port photobeam
+is connected to.</p>
+<p class="last">Defaults to 2.</p>
+</dd>
+<dt><cite>reward_beam_r_pin</cite>: 3</dt>
+<dd><p class="first">The port in the Switch &amp; Sense to which the right reward port photobeam
+is connected to.</p>
+<p class="last">Defaults to 3.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">daqout:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>SAS_chan</cite>: 0</dt>
+<dd><p class="first">The channel number of the Switch &amp; Sense 8/8 as configured in InstaCal.</p>
+<p class="last">Defaults to zero.</p>
+</dd>
+<dt><cite>fans_pin</cite>: 5</dt>
+<dd><p class="first">The port in the Switch &amp; Sense that controls the fans.</p>
+<p class="last">Defaults to 5.</p>
+</dd>
+<dt><cite>feeder_l_pin</cite>: 0</dt>
+<dd><p class="first">The port in the Switch &amp; Sense that controls the left feeder.</p>
+<p class="last">Defaults to 0.</p>
+</dd>
+<dt><cite>feeder_r_pin</cite>: 2</dt>
+<dd><p class="first">The port in the Switch &amp; Sense that controls the right feeder.</p>
+<p class="last">Defaults to 2.</p>
+</dd>
+<dt><cite>house_light_pin</cite>: 4</dt>
+<dd><p class="first">The port in the Switch &amp; Sense that controls the house light.</p>
+<p class="last">Defaults to 4.</p>
+</dd>
+<dt><cite>ir_leds_pin</cite>: 6</dt>
+<dd><p class="first">The port in the Switch &amp; Sense that controls the IR lights.</p>
+<p class="last">Defaults to 6.</p>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">devices:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>filter_len</cite>: 1</dt>
+<dd>The number of previous trials to average when displaying the trial
+result in the graphs.</dd>
+<dt><cite>log_filename</cite>: {animal}_%m-%d-%Y_%I-%M-%S_%p.csv</dt>
+<dd><p class="first">The pattern that will be used to generate the log filenames for each
+trial. It is generated as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">strftime</span><span class="p">(</span><span class="n">log_name_pat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;animal&#39;</span><span class="p">:</span> <span class="n">animal_id</span><span class="p">,</span> <span class="s1">&#39;trial&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="p">,</span>
+<span class="s1">&#39;block&#39;</span><span class="p">:</span> <span class="n">block</span><span class="p">}))</span>
+</pre></div>
+</div>
+<p>Which basically means that all instances of <code class="docutils literal"><span class="pre">{animal}</span></code>, <code class="docutils literal"><span class="pre">{trial}</span></code>, and
+<code class="docutils literal"><span class="pre">{block}</span></code> in the filename will be replaced by the
+animal name given in the GUI, the current trial, and block numbers. Then,
+it&#8217;s is passed to <cite>strftime</cite> that formats any time parameters to get the
+log name used for that animal.</p>
+<p class="last">If the filename matches an existing file, the new data will be appended to
+that file.</p>
+</dd>
+<dt><cite>n_valve_boards</cite>: 2</dt>
+<dd>The number of valve boards connected. Each board typically controls
+8 valves.</dd>
+<dt><cite>sound_file_l</cite>: Tone.wav</dt>
+<dd>The sound file used in training as a cue when the left side is
+rewarded.</dd>
+<dt><cite>sound_file_r</cite>: Tone.wav</dt>
+<dd>The sound file used in training as a cue when the right side is
+rewarded.</dd>
+<dt><cite>use_mfc</cite>: False</dt>
+<dd>Whether a MFC is used for mixing the odor streams (i.e. two odors
+are presented in a mixed form for each trial).</dd>
+<dt><cite>use_mfc_air</cite>: False</dt>
+<dd>When <code class="xref py py-attr docutils literal"><span class="pre">use_mfc</span></code> is False, if this is True, a MFC will be used for
+driving air as a single odor stream. No mixing is performed.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">ftdi_chan:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>ftdi_desc</cite>:</dt>
+<dd><p class="first">The description of the FTDI hardware board. This a name written to the
+hardware device.</p>
+<p class="last"><code class="xref py py-attr docutils literal"><span class="pre">ftdi_serial</span></code> or <code class="xref py py-attr docutils literal"><span class="pre">ftdi_desc</span></code> are used to locate the correct
+board to open. An example is <cite>&#8216;Alder Board&#8217;</cite> for the Alder board.</p>
+</dd>
+<dt><cite>ftdi_serial</cite>:</dt>
+<dd>The serial number of the FTDI hardware board. Can be empty if
+<code class="xref py py-attr docutils literal"><span class="pre">ftdi_desc</span></code> is provided.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">mfc_a:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>mfc_id</cite>: 0</dt>
+<dd>The MFC assigned decimal number used to communicate with that MFC.</dd>
+<dt><cite>port_name</cite>:</dt>
+<dd>The COM port name of the MFC, e.g. COM3.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">mfc_air:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>mfc_id</cite>: 0</dt>
+<dd>The MFC assigned decimal number used to communicate with that MFC.</dd>
+<dt><cite>port_name</cite>:</dt>
+<dd>The COM port name of the MFC, e.g. COM3.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">mfc_b:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>mfc_id</cite>: 0</dt>
+<dd>The MFC assigned decimal number used to communicate with that MFC.</dd>
+<dt><cite>port_name</cite>:</dt>
+<dd>The COM port name of the MFC, e.g. COM3.</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">odors:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt><cite>clock_bit</cite>: 0</dt>
+<dd><p class="first">The pin on the FTDI board to which the serial device&#8217;s clock bit is
+connected.</p>
+<p class="last">Defaults to zero.</p>
+</dd>
+<dt><cite>clock_size</cite>: 20</dt>
+<dd>The hardware clock width used to clock out data. Defaults to 20.</dd>
+<dt><cite>data_bit</cite>: 0</dt>
+<dd><p class="first">The pin on the FTDI board to which the serial device&#8217;s data bit is
+connected.</p>
+<p class="last">Defaults to zero.</p>
+</dd>
+<dt><cite>latch_bit</cite>: 0</dt>
+<dd><p class="first">The pin on the FTDI board to which the serial device&#8217;s latch bit is
+connected.</p>
+<p class="last">Defaults to zero.</p>
+</dd>
+<dt><cite>num_boards</cite>: 1</dt>
+<dd><p class="first">The number of serial boards connected in series to the FTDI device.</p>
+<p class="last">Each board is a 8-channel port. Defaults to 1.</p>
+</dd>
+<dt><cite>output</cite>: True</dt>
+<dd>Whether the serial device is a output or input device. If input a
+<a class="reference external" href="https://matham.github.io/pybarst/ftdi_switch.html#pybarst.ftdi.switch.FTDISerializerIn" title="(in PyBarst v2.2.dev0)"><code class="xref py py-class docutils literal"><span class="pre">pybarst.ftdi.switch.FTDISerializerIn</span></code></a> will be used, otherwise a
+<a class="reference external" href="https://matham.github.io/pybarst/ftdi_switch.html#pybarst.ftdi.switch.FTDISerializerOut" title="(in PyBarst v2.2.dev0)"><code class="xref py py-class docutils literal"><span class="pre">pybarst.ftdi.switch.FTDISerializerOut</span></code></a> will be used.</dd>
+</dl>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">VetCond</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matham&repo=forced_choice&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">forced_choice Config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/api.html">The ForcedChoice API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="getting_started.html" title="previous chapter">Getting Started</a></li>
+      <li>Next: <a href="api/api.html" title="next chapter">The ForcedChoice API</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/config.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/config.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/matham/forced_choice" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

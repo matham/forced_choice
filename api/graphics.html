@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Graphics &mdash; VetCond 0.1-dev documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1-dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="VetCond 0.1-dev documentation" href="../index.html" />
+    <link rel="up" title="The ForcedChoice API" href="api.html" />
+    <link rel="next" title="Forced Choice App" href="main.html" />
+    <link rel="prev" title="Stages" href="stages.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <span class="target" id="module-forced_choice.graphics"><span id="graphics-api"></span></span><div class="section" id="graphics">
+<h1>Graphics<a class="headerlink" href="#graphics" title="Permalink to this headline">¶</a></h1>
+<p>GUI elements.</p>
+<dl class="class">
+<dt id="forced_choice.graphics.TrialOutcome">
+<em class="property">class </em><code class="descclassname">forced_choice.graphics.</code><code class="descname">TrialOutcome</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.graphics.TrialOutcome" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">kivy.uix.gridlayout.GridLayout</span></code></p>
+<p>Visualizes the outcome of a trial. Typically a few instances are created
+and then reused in a rotating fashion.</p>
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.animal">
+<code class="descname">animal</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.animal" title="Permalink to this definition">¶</a></dt>
+<dd><p>The animal ID for the trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.block">
+<code class="descname">block</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.block" title="Permalink to this definition">¶</a></dt>
+<dd><p>The zero-based block number.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.incomplete">
+<code class="descname">incomplete</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.incomplete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the trial ended with an incomplete if the animal didn&#8217;t sample
+the odor stream long enough.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.graphics.TrialOutcome.init_outcome">
+<code class="descname">init_outcome</code><span class="sig-paren">(</span><em>animal</em>, <em>block</em>, <em>trial</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.init_outcome" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called at the start of a trial with the trial information in
+order to reset the widget and prepare for this trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.iti">
+<code class="descname">iti</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.iti" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ITI of the trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.passed">
+<code class="descname">passed</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.passed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the trial was passes or failed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.rewarded">
+<code class="descname">rewarded</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.rewarded" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which feeder side was rewarded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.side">
+<code class="descname">side</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.side" title="Permalink to this definition">¶</a></dt>
+<dd><p>The side that will be rewarded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.side_went">
+<code class="descname">side_went</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.side_went" title="Permalink to this definition">¶</a></dt>
+<dd><p>The feeder side the animal visited.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.tinp">
+<code class="descname">tinp</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.tinp" title="Permalink to this definition">¶</a></dt>
+<dd><p>How long it spent in the nose port.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.trial">
+<code class="descname">trial</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>The zero-based trial number.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.ttnp">
+<code class="descname">ttnp</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.ttnp" title="Permalink to this definition">¶</a></dt>
+<dd><p>How long from trial start until it visited the nose port.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialOutcome.ttrp">
+<code class="descname">ttrp</code><a class="headerlink" href="#forced_choice.graphics.TrialOutcome.ttrp" title="Permalink to this definition">¶</a></dt>
+<dd><p>How long it spent after the nose poke until it visited a feeder.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.graphics.TrialPrediction">
+<em class="property">class </em><code class="descclassname">forced_choice.graphics.</code><code class="descname">TrialPrediction</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.graphics.TrialPrediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">kivy.uix.label.Label</span></code></p>
+<p>A Label generated for each trial ahead of time, indicating the
+pre-computed params for that trial.</p>
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.odor">
+<code class="descname">odor</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.odor" title="Permalink to this definition">¶</a></dt>
+<dd><p>The odor scehduled for that trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.outcome">
+<code class="descname">outcome</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.outcome" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether it passed or failed the trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.outcome_text">
+<code class="descname">outcome_text</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.outcome_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>A textual version of <a class="reference internal" href="#forced_choice.graphics.TrialPrediction.outcome" title="forced_choice.graphics.TrialPrediction.outcome"><code class="xref py py-attr docutils literal"><span class="pre">outcome</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.side">
+<code class="descname">side</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.side" title="Permalink to this definition">¶</a></dt>
+<dd><p>The feeder side the animal has to go to for this trial in order to get
+rewarded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.side_rewarded">
+<code class="descname">side_rewarded</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.side_rewarded" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which feeder side was rewarded for this trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.side_went">
+<code class="descname">side_went</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.side_went" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which feeder side the animal actually went to for the trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.graphics.TrialPrediction.trial">
+<code class="descname">trial</code><a class="headerlink" href="#forced_choice.graphics.TrialPrediction.trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>The trial number.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">VetCond</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matham&repo=forced_choice&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">forced_choice Config</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The ForcedChoice API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="forced_choice.html">Forced Choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices.html">Devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stages.html">Stages</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Graphics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">Forced Choice App</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="api.html">The ForcedChoice API</a><ul>
+      <li>Previous: <a href="stages.html" title="previous chapter">Stages</a></li>
+      <li>Next: <a href="main.html" title="next chapter">Forced Choice App</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/graphics.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/api/graphics.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/matham/forced_choice" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

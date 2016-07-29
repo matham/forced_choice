@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Devices &mdash; VetCond 0.1-dev documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1-dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="VetCond 0.1-dev documentation" href="../index.html" />
+    <link rel="up" title="The ForcedChoice API" href="api.html" />
+    <link rel="next" title="Stages" href="stages.html" />
+    <link rel="prev" title="Forced Choice" href="forced_choice.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <span class="target" id="module-forced_choice.devices"><span id="devices-api"></span></span><div class="section" id="devices">
+<h1>Devices<a class="headerlink" href="#devices" title="Permalink to this headline">¶</a></h1>
+<p>Defines some of the devices that are used in the experiment.</p>
+<dl class="class">
+<dt id="forced_choice.devices.FTDIOdorsBase">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">FTDIOdorsBase</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.FTDIOdorsBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Base class for the FTDI odor device.</p>
+<dl class="attribute">
+<dt id="forced_choice.devices.FTDIOdorsBase.n_valve_boards">
+<code class="descname">n_valve_boards</code><a class="headerlink" href="#forced_choice.devices.FTDIOdorsBase.n_valve_boards" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of valve boards that are connected to the FTDI controller.
+Each board can typically control 8 valves.</p>
+<p>Defaults to 2.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.FTDIOdorsSim">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">FTDIOdorsSim</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.FTDIOdorsSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.FTDIOdorsBase" title="forced_choice.devices.FTDIOdorsBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.FTDIOdorsBase</span></code></a>, <a class="reference external" href="https://matham.github.io/moa/api/device/digital.html#moa.device.digital.ButtonPort" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">moa.device.digital.ButtonPort</span></code></a></p>
+<p>Device used when simulating the odor device.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.FTDIOdors">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">FTDIOdors</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.FTDIOdors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.FTDIOdorsBase" title="forced_choice.devices.FTDIOdorsBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.FTDIOdorsBase</span></code></a>, <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/ftdi.html#cplcom.moa.device.ftdi.FTDISerializerDevice" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.device.ftdi.FTDISerializerDevice</span></code></a></p>
+<p>Device used when using the barst ftdi odor device.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQInDeviceBase">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQInDeviceBase</code><a class="headerlink" href="#forced_choice.devices.DAQInDeviceBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Base class for the Switch &amp; Sense 8/8 input ports.</p>
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDeviceBase.nose_beam">
+<code class="descname">nose_beam</code><a class="headerlink" href="#forced_choice.devices.DAQInDeviceBase.nose_beam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads / controls the nose port photobeam.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDeviceBase.reward_beam_l">
+<code class="descname">reward_beam_l</code><a class="headerlink" href="#forced_choice.devices.DAQInDeviceBase.reward_beam_l" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads / controls the left reward port photobeam.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDeviceBase.reward_beam_r">
+<code class="descname">reward_beam_r</code><a class="headerlink" href="#forced_choice.devices.DAQInDeviceBase.reward_beam_r" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads / controls the right reward port photobeam.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQInDeviceSim">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQInDeviceSim</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.DAQInDeviceSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.DAQInDeviceBase" title="forced_choice.devices.DAQInDeviceBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.DAQInDeviceBase</span></code></a>, <a class="reference external" href="https://matham.github.io/moa/api/device/digital.html#moa.device.digital.ButtonPort" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">moa.device.digital.ButtonPort</span></code></a></p>
+<p>Device used when simulating the Switch &amp; Sense 8/8 input device.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQInDevice">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQInDevice</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.DAQInDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.DAQInDeviceBase" title="forced_choice.devices.DAQInDeviceBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.DAQInDeviceBase</span></code></a>, <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/mcdaq.html#cplcom.moa.device.mcdaq.MCDAQDevice" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.device.mcdaq.MCDAQDevice</span></code></a></p>
+<p>Device used when using the barst Switch &amp; Sense 8/8 input device.</p>
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDevice.nose_beam_pin">
+<code class="descname">nose_beam_pin</code><a class="headerlink" href="#forced_choice.devices.DAQInDevice.nose_beam_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense to which the nose port photobeam is
+connected to.</p>
+<p>Defaults to 1.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDevice.reward_beam_l_pin">
+<code class="descname">reward_beam_l_pin</code><a class="headerlink" href="#forced_choice.devices.DAQInDevice.reward_beam_l_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense to which the left reward port photobeam
+is connected to.</p>
+<p>Defaults to 2.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQInDevice.reward_beam_r_pin">
+<code class="descname">reward_beam_r_pin</code><a class="headerlink" href="#forced_choice.devices.DAQInDevice.reward_beam_r_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense to which the right reward port photobeam
+is connected to.</p>
+<p>Defaults to 3.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQOutDeviceBase">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQOutDeviceBase</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Base class for the Switch &amp; Sense 8/8 output ports.</p>
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDeviceBase.fans">
+<code class="descname">fans</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase.fans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controls the fans.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDeviceBase.feeder_l">
+<code class="descname">feeder_l</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase.feeder_l" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controls the left feeder.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDeviceBase.feeder_r">
+<code class="descname">feeder_r</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase.feeder_r" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controls the right feeder.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDeviceBase.house_light">
+<code class="descname">house_light</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase.house_light" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controls the house light.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDeviceBase.ir_leds">
+<code class="descname">ir_leds</code><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceBase.ir_leds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Controls the IR light.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQOutDeviceSim">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQOutDeviceSim</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.DAQOutDeviceSim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.DAQOutDeviceBase" title="forced_choice.devices.DAQOutDeviceBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.DAQOutDeviceBase</span></code></a>, <a class="reference external" href="https://matham.github.io/moa/api/device/digital.html#moa.device.digital.ButtonPort" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">moa.device.digital.ButtonPort</span></code></a></p>
+<p>Device used when simulating the Switch &amp; Sense 8/8 output device.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.devices.DAQOutDevice">
+<em class="property">class </em><code class="descclassname">forced_choice.devices.</code><code class="descname">DAQOutDevice</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.devices.DAQOutDevice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#forced_choice.devices.DAQOutDeviceBase" title="forced_choice.devices.DAQOutDeviceBase"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.devices.DAQOutDeviceBase</span></code></a>, <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/mcdaq.html#cplcom.moa.device.mcdaq.MCDAQDevice" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.device.mcdaq.MCDAQDevice</span></code></a></p>
+<p>Device used when using the barst Switch &amp; Sense 8/8 output device.</p>
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDevice.fans_pin">
+<code class="descname">fans_pin</code><a class="headerlink" href="#forced_choice.devices.DAQOutDevice.fans_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense that controls the fans.</p>
+<p>Defaults to 5.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDevice.feeder_l_pin">
+<code class="descname">feeder_l_pin</code><a class="headerlink" href="#forced_choice.devices.DAQOutDevice.feeder_l_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense that controls the left feeder.</p>
+<p>Defaults to 0.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDevice.feeder_r_pin">
+<code class="descname">feeder_r_pin</code><a class="headerlink" href="#forced_choice.devices.DAQOutDevice.feeder_r_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense that controls the right feeder.</p>
+<p>Defaults to 2.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDevice.house_light_pin">
+<code class="descname">house_light_pin</code><a class="headerlink" href="#forced_choice.devices.DAQOutDevice.house_light_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense that controls the house light.</p>
+<p>Defaults to 4.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.devices.DAQOutDevice.ir_leds_pin">
+<code class="descname">ir_leds_pin</code><a class="headerlink" href="#forced_choice.devices.DAQOutDevice.ir_leds_pin" title="Permalink to this definition">¶</a></dt>
+<dd><p>The port in the Switch &amp; Sense that controls the IR lights.</p>
+<p>Defaults to 6.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">VetCond</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matham&repo=forced_choice&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">forced_choice Config</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The ForcedChoice API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="forced_choice.html">Forced Choice</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Devices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="stages.html">Stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphics.html">Graphics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">Forced Choice App</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="api.html">The ForcedChoice API</a><ul>
+      <li>Previous: <a href="forced_choice.html" title="previous chapter">Forced Choice</a></li>
+      <li>Next: <a href="stages.html" title="next chapter">Stages</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/devices.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/api/devices.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/matham/forced_choice" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

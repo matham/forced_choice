@@ -1,0 +1,1000 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Stages &mdash; VetCond 0.1-dev documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1-dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="VetCond 0.1-dev documentation" href="../index.html" />
+    <link rel="up" title="The ForcedChoice API" href="api.html" />
+    <link rel="next" title="Graphics" href="graphics.html" />
+    <link rel="prev" title="Devices" href="devices.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <span class="target" id="module-forced_choice.stages"><span id="stages-api"></span></span><div class="section" id="stages">
+<h1>Stages<a class="headerlink" href="#stages" title="Permalink to this headline">¶</a></h1>
+<p>The stages of the experiment.</p>
+<dl class="class">
+<dt id="forced_choice.stages.RootStage">
+<em class="property">class </em><code class="descclassname">forced_choice.stages.</code><code class="descname">RootStage</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://matham.github.io/cplcom/api/moa/stages.html#cplcom.moa.stages.ConfigStageBase" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.stages.ConfigStageBase</span></code></a></p>
+<p>The stage that creates and initializes all the Barst devices (or
+simulation devices if <code class="xref py py-attr docutils literal"><span class="pre">ExperimentApp.simulate</span></code>).</p>
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.configs">
+<code class="descname">configs</code><a class="headerlink" href="#forced_choice.stages.RootStage.configs" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dict whose keys are names of experiment types and whose values are
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig" title="forced_choice.stages.ExperimentConfig"><code class="xref py py-class docutils literal"><span class="pre">ExperimentConfig</span></code></a> instances configuring the corresponding
+experiment.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.RootStage.create_daqin_devs">
+<code class="descname">create_daqin_devs</code><span class="sig-paren">(</span><em>sim</em>, <em>settings</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage.create_daqin_devs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the daq input device, <a class="reference internal" href="#forced_choice.stages.RootStage.daq_in_dev" title="forced_choice.stages.RootStage.daq_in_dev"><code class="xref py py-attr docutils literal"><span class="pre">daq_in_dev</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.RootStage.create_daqout_devs">
+<code class="descname">create_daqout_devs</code><span class="sig-paren">(</span><em>sim</em>, <em>settings</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage.create_daqout_devs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the daq output device, <a class="reference internal" href="#forced_choice.stages.RootStage.daq_out_dev" title="forced_choice.stages.RootStage.daq_out_dev"><code class="xref py py-attr docutils literal"><span class="pre">daq_out_dev</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.RootStage.create_mfc_devs">
+<code class="descname">create_mfc_devs</code><span class="sig-paren">(</span><em>sim</em>, <em>settings</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage.create_mfc_devs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the MFC devices: <a class="reference internal" href="#forced_choice.stages.RootStage.mfc_air" title="forced_choice.stages.RootStage.mfc_air"><code class="xref py py-attr docutils literal"><span class="pre">mfc_air</span></code></a>, <a class="reference internal" href="#forced_choice.stages.RootStage.mfc_a" title="forced_choice.stages.RootStage.mfc_a"><code class="xref py py-attr docutils literal"><span class="pre">mfc_a</span></code></a>, and
+<a class="reference internal" href="#forced_choice.stages.RootStage.mfc_b" title="forced_choice.stages.RootStage.mfc_b"><code class="xref py py-attr docutils literal"><span class="pre">mfc_b</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.RootStage.create_odor_devs">
+<code class="descname">create_odor_devs</code><span class="sig-paren">(</span><em>sim</em>, <em>settings</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage.create_odor_devs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the odor device, <a class="reference internal" href="#forced_choice.stages.RootStage.odor_dev" title="forced_choice.stages.RootStage.odor_dev"><code class="xref py py-attr docutils literal"><span class="pre">odor_dev</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.RootStage.create_sound_devs">
+<code class="descname">create_sound_devs</code><span class="sig-paren">(</span><em>sim</em>, <em>settings</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.RootStage.create_sound_devs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the sound devices: <a class="reference internal" href="#forced_choice.stages.RootStage.sound_l" title="forced_choice.stages.RootStage.sound_l"><code class="xref py py-attr docutils literal"><span class="pre">sound_l</span></code></a> and <a class="reference internal" href="#forced_choice.stages.RootStage.sound_r" title="forced_choice.stages.RootStage.sound_r"><code class="xref py py-attr docutils literal"><span class="pre">sound_r</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.daq_in_dev">
+<code class="descname">daq_in_dev</code><a class="headerlink" href="#forced_choice.stages.RootStage.daq_in_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Switch and Sense device, <a class="reference internal" href="devices.html#forced_choice.devices.DAQInDevice" title="forced_choice.devices.DAQInDevice"><code class="xref py py-class docutils literal"><span class="pre">DAQInDevice</span></code></a>
+when using actual hardware, or a
+<a class="reference internal" href="devices.html#forced_choice.devices.DAQInDeviceSim" title="forced_choice.devices.DAQInDeviceSim"><code class="xref py py-class docutils literal"><span class="pre">DAQInDeviceSim</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a> the
+hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.daq_out_dev">
+<code class="descname">daq_out_dev</code><a class="headerlink" href="#forced_choice.stages.RootStage.daq_out_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Switch and Sense device,
+<a class="reference internal" href="devices.html#forced_choice.devices.DAQOutDevice" title="forced_choice.devices.DAQOutDevice"><code class="xref py py-class docutils literal"><span class="pre">DAQOutDevice</span></code></a>
+when using actual hardware, or a
+<a class="reference internal" href="devices.html#forced_choice.devices.DAQOutDeviceSim" title="forced_choice.devices.DAQOutDeviceSim"><code class="xref py py-class docutils literal"><span class="pre">DAQOutDeviceSim</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a> the
+hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.filter_len">
+<code class="descname">filter_len</code><a class="headerlink" href="#forced_choice.stages.RootStage.filter_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of previous trials to average when displaying the trial
+result in the graphs.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.ftdi_chan">
+<code class="descname">ftdi_chan</code><a class="headerlink" href="#forced_choice.stages.RootStage.ftdi_chan" title="Permalink to this definition">¶</a></dt>
+<dd><p>The FTDI controller device,
+<a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/ftdi.html#cplcom.moa.device.ftdi.FTDIDevChannel" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">FTDIDevChannel</span></code></a>
+when using actual hardware, or None when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.log_filename">
+<code class="descname">log_filename</code><a class="headerlink" href="#forced_choice.stages.RootStage.log_filename" title="Permalink to this definition">¶</a></dt>
+<dd><p>The pattern that will be used to generate the log filenames for each
+trial. It is generated as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">strftime</span><span class="p">(</span><span class="n">log_name_pat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;animal&#39;</span><span class="p">:</span> <span class="n">animal_id</span><span class="p">,</span> <span class="s1">&#39;trial&#39;</span><span class="p">:</span> <span class="n">trial</span><span class="p">,</span>
+<span class="s1">&#39;block&#39;</span><span class="p">:</span> <span class="n">block</span><span class="p">}))</span>
+</pre></div>
+</div>
+<p>Which basically means that all instances of <code class="docutils literal"><span class="pre">{animal}</span></code>, <code class="docutils literal"><span class="pre">{trial}</span></code>, and
+<code class="docutils literal"><span class="pre">{block}</span></code> in the filename will be replaced by the
+animal name given in the GUI, the current trial, and block numbers. Then,
+it&#8217;s is passed to <cite>strftime</cite> that formats any time parameters to get the
+log name used for that animal.</p>
+<p>If the filename matches an existing file, the new data will be appended to
+that file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.mfc_a">
+<code class="descname">mfc_a</code><a class="headerlink" href="#forced_choice.stages.RootStage.mfc_a" title="Permalink to this definition">¶</a></dt>
+<dd><p>The MFC controlling one odor stream, <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/mfc.html#cplcom.moa.device.mfc.MFC" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">MFC</span></code></a>
+when using actual hardware, or a
+<a class="reference external" href="https://matham.github.io/moa/api/device/analog.html#moa.device.analog.NumericPropertyChannel" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">NumericPropertyChannel</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a>
+the hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.mfc_air">
+<code class="descname">mfc_air</code><a class="headerlink" href="#forced_choice.stages.RootStage.mfc_air" title="Permalink to this definition">¶</a></dt>
+<dd><p>The MFC controlling the air, <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/mfc.html#cplcom.moa.device.mfc.MFC" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">MFC</span></code></a>
+when using actual hardware, or a
+<a class="reference external" href="https://matham.github.io/moa/api/device/analog.html#moa.device.analog.NumericPropertyChannel" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">NumericPropertyChannel</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a>
+the hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.mfc_b">
+<code class="descname">mfc_b</code><a class="headerlink" href="#forced_choice.stages.RootStage.mfc_b" title="Permalink to this definition">¶</a></dt>
+<dd><p>The MFC controlling the other odor stream,
+<a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/mfc.html#cplcom.moa.device.mfc.MFC" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">MFC</span></code></a> when using actual hardware, or a
+<a class="reference external" href="https://matham.github.io/moa/api/device/analog.html#moa.device.analog.NumericPropertyChannel" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">NumericPropertyChannel</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a>
+the hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.n_valve_boards">
+<code class="descname">n_valve_boards</code><a class="headerlink" href="#forced_choice.stages.RootStage.n_valve_boards" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of valve boards connected. Each board typically controls
+8 valves.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.odor_dev">
+<code class="descname">odor_dev</code><a class="headerlink" href="#forced_choice.stages.RootStage.odor_dev" title="Permalink to this definition">¶</a></dt>
+<dd><p>The FTDI valve board, <a class="reference internal" href="devices.html#forced_choice.devices.FTDIOdors" title="forced_choice.devices.FTDIOdors"><code class="xref py py-class docutils literal"><span class="pre">FTDIOdors</span></code></a>
+when using actual hardware, or a
+<a class="reference internal" href="devices.html#forced_choice.devices.FTDIOdorsSim" title="forced_choice.devices.FTDIOdorsSim"><code class="xref py py-class docutils literal"><span class="pre">FTDIOdorsSim</span></code></a> when <a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a> the
+hardware.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.server">
+<code class="descname">server</code><a class="headerlink" href="#forced_choice.stages.RootStage.server" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Barst server instance,
+<a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/barst_server.html#cplcom.moa.device.barst_server.Server" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">Server</span></code></a>, or None when
+<a class="reference internal" href="#forced_choice.stages.RootStage.simulate" title="forced_choice.stages.RootStage.simulate"><code class="xref py py-attr docutils literal"><span class="pre">simulate</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.simulate">
+<code class="descname">simulate</code><a class="headerlink" href="#forced_choice.stages.RootStage.simulate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the user has chosen to simulate the experiment. When <code class="docutils literal"><span class="pre">True</span></code>,
+no actual hardware is required and all the hardware will be emulated
+by software and virtual devices.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.sound_file_l">
+<code class="descname">sound_file_l</code><a class="headerlink" href="#forced_choice.stages.RootStage.sound_file_l" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sound file used in training as a cue when the left side is
+rewarded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.sound_file_r">
+<code class="descname">sound_file_r</code><a class="headerlink" href="#forced_choice.stages.RootStage.sound_file_r" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sound file used in training as a cue when the right side is
+rewarded.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.sound_l">
+<code class="descname">sound_l</code><a class="headerlink" href="#forced_choice.stages.RootStage.sound_l" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/ffplayer.html#cplcom.moa.device.ffplayer.FFPyPlayerAudioDevice" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.device.ffplayer.FFPyPlayerAudioDevice</span></code></a>
+that plays the file provided in <a class="reference internal" href="#forced_choice.stages.RootStage.sound_file_l" title="forced_choice.stages.RootStage.sound_file_l"><code class="xref py py-attr docutils literal"><span class="pre">sound_file_l</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.sound_r">
+<code class="descname">sound_r</code><a class="headerlink" href="#forced_choice.stages.RootStage.sound_r" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference external" href="https://matham.github.io/cplcom/api/moa/device/ffplayer.html#cplcom.moa.device.ffplayer.FFPyPlayerAudioDevice" title="(in CPLCom v0.1.1.dev0)"><code class="xref py py-class docutils literal"><span class="pre">cplcom.moa.device.ffplayer.FFPyPlayerAudioDevice</span></code></a>
+that plays the file provided in <a class="reference internal" href="#forced_choice.stages.RootStage.sound_file_r" title="forced_choice.stages.RootStage.sound_file_r"><code class="xref py py-attr docutils literal"><span class="pre">sound_file_r</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.tracker">
+<code class="descname">tracker</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.RootStage.tracker" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference external" href="https://matham.github.io/moa/api/utils.html#moa.utils.ObjectStateTracker" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">ObjectStateTracker</span></code></a> instance used to
+process the device activation and deactivation during startup and
+shutdown.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.use_mfc">
+<code class="descname">use_mfc</code><a class="headerlink" href="#forced_choice.stages.RootStage.use_mfc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether a MFC is used for mixing the odor streams (i.e. two odors
+are presented in a mixed form for each trial).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.RootStage.use_mfc_air">
+<code class="descname">use_mfc_air</code><a class="headerlink" href="#forced_choice.stages.RootStage.use_mfc_air" title="Permalink to this definition">¶</a></dt>
+<dd><p>When <a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc" title="forced_choice.stages.RootStage.use_mfc"><code class="xref py py-attr docutils literal"><span class="pre">use_mfc</span></code></a> is False, if this is True, a MFC will be used for
+driving air as a single odor stream. No mixing is performed.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.stages.ExperimentConfig">
+<em class="property">class </em><code class="descclassname">forced_choice.stages.</code><code class="descname">ExperimentConfig</code><span class="sig-paren">(</span><em>load=True</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.ExperimentConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://matham.github.io/moa/api/base.html#moa.base.MoaBase" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">moa.base.MoaBase</span></code></a></p>
+<p>Stores the configuration parameters for a experiment.</p>
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.NO_valve">
+<code class="descname">NO_valve</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.NO_valve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the normally open
+(mineral oil) odor valve. I.e. the valve which is normally open and closes
+during the trial when the odor is released.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.air_rate">
+<code class="descname">air_rate</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.air_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the flow rate for the
+air stream using the air MFC when <a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc" title="forced_choice.stages.RootStage.use_mfc"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code></a> or
+<a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc_air" title="forced_choice.stages.RootStage.use_mfc_air"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc_air</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.ExperimentConfig.apply_config_ui">
+<code class="descname">apply_config_ui</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.apply_config_ui" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the odor and experiment values of the UI using the provided
+configuration parameters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.bad_iti">
+<code class="descname">bad_iti</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.bad_iti" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ITI duration of a failed trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.beta_trials_max">
+<code class="descname">beta_trials_max</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.beta_trials_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>For each odor, it is the last <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.beta_trials_max" title="forced_choice.stages.ExperimentConfig.beta_trials_max"><code class="xref py py-attr docutils literal"><span class="pre">beta_trials_max</span></code></a> trials (of that
+odor) to take into account when computing the accuracy rate for that odor.</p>
+<p>Trials for this odor further back in history than <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.beta_trials_max" title="forced_choice.stages.ExperimentConfig.beta_trials_max"><code class="xref py py-attr docutils literal"><span class="pre">beta_trials_max</span></code></a>
+specific to this odor are dropped.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.beta_trials_min">
+<code class="descname">beta_trials_min</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.beta_trials_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>The minimum number of trials for each odor that must have occured before
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_beta" title="forced_choice.stages.ExperimentConfig.odor_beta"><code class="xref py py-attr docutils literal"><span class="pre">odor_beta</span></code></a> bias compensation is activated. If the number of trial
+that occurred for any odor is less than <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.beta_trials_min" title="forced_choice.stages.ExperimentConfig.beta_trials_min"><code class="xref py py-attr docutils literal"><span class="pre">beta_trials_min</span></code></a>, bias
+compensation is disabled.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.ExperimentConfig.do_equal_random">
+<code class="descname">do_equal_random</code><span class="sig-paren">(</span><em>n</em>, <em>m</em>, <em>cond</em>, <em>last_val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.do_equal_random" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implements <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_equalizer" title="forced_choice.stages.ExperimentConfig.odor_equalizer"><code class="xref py py-attr docutils literal"><span class="pre">odor_equalizer</span></code></a> when selected.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.ExperimentConfig.do_odor_list">
+<code class="descname">do_odor_list</code><span class="sig-paren">(</span><em>block</em>, <em>block_odors</em>, <em>odor_opts</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.do_odor_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the odor selection for each trial from a list when
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_method" title="forced_choice.stages.ExperimentConfig.odor_method"><code class="xref py py-attr docutils literal"><span class="pre">odor_method</span></code></a> <cite>&#8216;`list&#8217;`</cite>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.ExperimentConfig.do_odor_random">
+<code class="descname">do_odor_random</code><span class="sig-paren">(</span><em>block</em>, <em>block_odors</em>, <em>odor_opts</em>, <em>method</em>, <em>n</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.do_odor_random" title="Permalink to this definition">¶</a></dt>
+<dd><p>When <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_method" title="forced_choice.stages.ExperimentConfig.odor_method"><code class="xref py py-attr docutils literal"><span class="pre">odor_method</span></code></a> is not <code class="docutils literal"><span class="pre">'list'</span></code>, but is <cite>random</cite> or
+<cite>constant</cite>, this generates the odors list for each trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.good_iti">
+<code class="descname">good_iti</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.good_iti" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ITI duration of a passed trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.incomplete_iti">
+<code class="descname">incomplete_iti</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.incomplete_iti" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ITI duration of a trial where the animal did not hold its nose long
+enough in the nose port and <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.min_nose_poke" title="forced_choice.stages.ExperimentConfig.min_nose_poke"><code class="xref py py-attr docutils literal"><span class="pre">min_nose_poke</span></code></a> was not satisfied.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.max_decision_duration">
+<code class="descname">max_decision_duration</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.max_decision_duration" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the maximum duration
+of the decision stage. After this duration, the stage will terminate and
+proceed to the ITI stage even if the animal didn&#8217;t visit the reward port.</p>
+<p>The decision determines whether a reward is dispensed and the duration of
+the ITI.</p>
+<p>If zero, there is no maximum.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.max_nose_poke">
+<code class="descname">max_nose_poke</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.max_nose_poke" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the maximum duration
+of the nose port stage. After this duration, the stage will terminate and
+proceed to the decision stage even if the animal is still in the nose port.</p>
+<p>If zero, there is no maximum.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.mfc_a_rate">
+<code class="descname">mfc_a_rate</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.mfc_a_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the flow rate for the
+odor stream a using the odor a MFC when <a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc" title="forced_choice.stages.RootStage.use_mfc"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.mfc_b_rate">
+<code class="descname">mfc_b_rate</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.mfc_b_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the flow rate for the
+odor stream b using the odor b MFC when <a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc" title="forced_choice.stages.RootStage.use_mfc"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.min_nose_poke">
+<code class="descname">min_nose_poke</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.min_nose_poke" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the minimum duration
+in the nose port AFTER the odor is released (i.e. <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_delay" title="forced_choice.stages.ExperimentConfig.odor_delay"><code class="xref py py-attr docutils literal"><span class="pre">odor_delay</span></code></a>).
+A nose port exit less than this duration will result in an incomplete
+trial. The ITI will then be <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.incomplete_iti" title="forced_choice.stages.ExperimentConfig.incomplete_iti"><code class="xref py py-attr docutils literal"><span class="pre">incomplete_iti</span></code></a>.</p>
+<p>If zero, there is no minimum.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.mix_dur">
+<code class="descname">mix_dur</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.mix_dur" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, how long to pass the
+air stream through the odor vials before the trial starts (during
+the last ITI).</p>
+<p>This ensures that when the animal enters the nose port, the odor is stream
+is already saturated. During this time the odor is directed to teh vaccum.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.mix_valve">
+<code class="descname">mix_valve</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.mix_valve" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the valve that directs
+the odor to go to vacuum or to the animal. Before the odor goes to the
+animal, the odor is mixed and evacuated to vacuum in order to saturate the
+air stream into a steady state condition.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.num_blocks">
+<code class="descname">num_blocks</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of blocks to run. Each block runs <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_trials" title="forced_choice.stages.ExperimentConfig.num_trials"><code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code></a> trials.</p>
+<p>All the configuration parameters that are lists, e.g. <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_trials" title="forced_choice.stages.ExperimentConfig.num_trials"><code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code></a>
+can specify a different value for each block.</p>
+<p>If the number of elements in these lists are less than the number of
+blocks, the last value of the list is used for the remaining blocks. E.g.
+for 10 blocks, if <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_trials" title="forced_choice.stages.ExperimentConfig.num_trials"><code class="xref py py-attr docutils literal"><span class="pre">num_trials</span></code></a> is <code class="docutils literal"><span class="pre">[5,</span> <span class="pre">6,</span> <span class="pre">2]</span></code>, then blocks 2 - 9
+will have 2 trials.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.num_pellets">
+<code class="descname">num_pellets</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.num_pellets" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of sugar pellets to deliver upon a successful trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.num_trials">
+<code class="descname">num_trials</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.num_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of the number of trials to run for each block of
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_beta">
+<code class="descname">odor_beta</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_beta" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the beta value to use
+when compensating for unequal side performance. This compensation is
+applied dynamically during the trials on top of any previous odor
+computations.</p>
+<p>We keep track of the accuracy rate of every odor (i.e. how often the animal
+chooses the incorrectly for that odor). Then, odors where the animal
+performed poorly will get presented with a higher probability.</p>
+<p>A <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_beta" title="forced_choice.stages.ExperimentConfig.odor_beta"><code class="xref py py-attr docutils literal"><span class="pre">odor_beta</span></code></a> value of zero disables this bias compensation. A value
+of e.g. 10, will bias very strongly towards changing the next trial odor
+to be a odor in which the animal performed poorly. The closer to zero, the
+lower such bias compensation. A value of 2-3 is reasonable.</p>
+<p>The trials are accumulated across blocks so a new block does not clear the
+odor bias history.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_delay">
+<code class="descname">odor_delay</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_delay" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, how long to delay the
+odor delivery onset from when the animal enters the nose port.</p>
+<p>If zero, there&#8217;s no delay.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_equalizer">
+<code class="descname">odor_equalizer</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_equalizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the number of trials
+during which all the odors for that block will be presented an equal
+number of times.</p>
+<p>That is, during these exclusively grouped <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_equalizer" title="forced_choice.stages.ExperimentConfig.odor_equalizer"><code class="xref py py-attr docutils literal"><span class="pre">odor_equalizer</span></code></a> trials,
+no odor will be presented more times than any other odor.</p>
+<p>The number of odors for each block listed in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a> must
+divide without remainder the <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_equalizer" title="forced_choice.stages.ExperimentConfig.odor_equalizer"><code class="xref py py-attr docutils literal"><span class="pre">odor_equalizer</span></code></a> value for that block.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_method">
+<code class="descname">odor_method</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the method used to
+determine which odor to use in the trials for the odors listed in
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a>.</p>
+<p>Possible methods are <cite>constant</cite>, <cite>randomx</cite>, or <cite>list</cite>.
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a> is used to select the odor to be used with this
+method.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt><cite>constant</cite>:</dt>
+<dd><a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a> is a 2d list of odors of length
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>. Each element in the outer list is a single
+element list containing the odor that is used for all the trials of
+that block.</dd>
+<dt><cite>randomx</cite>: x is a number or empty</dt>
+<dd><p class="first"><a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a> is a 2d list of odors of length
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>. Each inner list is a list of odors from which
+the trial odor would be randomly selected for each trial in the
+block.</p>
+<p class="last">If the method is <code class="docutils literal"><span class="pre">random</span></code>, the odor is randomly selected
+from that list. If random is followed by an integer, e.g.
+<code class="docutils literal"><span class="pre">random2</span></code>, then it&#8217;s random with the condition that no odor can
+be repeated more then x (2 in this) times successively.</p>
+</dd>
+<dt><cite>list</cite>:</dt>
+<dd><p class="first"><a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">odor_selection</span></code></a> is a 2d list of filenames. The files are
+read for each block and the odors listed in the file is used for
+the trials.</p>
+<p>The structure of the text file is a line for each block. Each line
+is a comma separated list, with the first column being the block
+number and the other column the odors to use for that block.</p>
+<p class="last">Each inner list in the 2d list (line) can only have a
+single filename for that block.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_names">
+<code class="descname">odor_names</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#forced_choice.stages.RootStage.n_valve_boards" title="forced_choice.stages.RootStage.n_valve_boards"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.n_valve_boards</span></code></a> * 8 long list for each valve,
+indicating the name of the odor for that valve.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_opts">
+<code class="descname">odor_opts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_opts" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list containing, for each block, a list of all the possible odors for
+this block from which we select a odor for every trial.</p>
+<p>Each element is a tuple of 1 or two odors with the same structure as
+the elements returned by <a class="reference internal" href="#forced_choice.stages.extract_odor" title="forced_choice.stages.extract_odor"><code class="xref py py-func docutils literal"><span class="pre">extract_odor()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_path">
+<code class="descname">odor_path</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>The filename of a file containing the names of odors and which side to
+reward that odor.</p>
+<p>The structure of the file is as follows: each line
+describes an odor and is a 3 or 4 column comma separated list of
+<code class="docutils literal"><span class="pre">(idx,</span> <span class="pre">name,</span> <span class="pre">side,</span> <span class="pre">mfc)</span></code>, where idx is the zero-based valve index.
+Name is the odor name. And side is the side of the odor to reward
+(r, l, rl, lr, or -).
+If using an mfc, the 4th column is either <code class="docutils literal"><span class="pre">a</span></code>, or <code class="docutils literal"><span class="pre">b</span></code> indicating the
+mfc to use of that valve.</p>
+<p>An example file is:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">,</span> <span class="n">mineral</span> <span class="n">oil</span><span class="p">,</span> <span class="n">r</span>
+<span class="mi">4</span><span class="p">,</span> <span class="n">citric</span> <span class="n">acid</span><span class="p">,</span> <span class="n">rl</span>
+<span class="mi">5</span><span class="p">,</span> <span class="n">limonene</span><span class="p">,</span> <span class="n">l</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_selection">
+<code class="descname">odor_selection</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, a inner list of odors
+used to select from trial odors for each block. See <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_method" title="forced_choice.stages.ExperimentConfig.odor_method"><code class="xref py py-attr docutils literal"><span class="pre">odor_method</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.odor_side">
+<code class="descname">odor_side</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.odor_side" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#forced_choice.stages.RootStage.n_valve_boards" title="forced_choice.stages.RootStage.n_valve_boards"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.n_valve_boards</span></code></a> * 8 long list for each valve,
+indicating which side is rewarded for that valve.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.sound_cue_delay">
+<code class="descname">sound_cue_delay</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.sound_cue_delay" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the random amount
+of time to delay the sound cue AFTER <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.min_nose_poke" title="forced_choice.stages.ExperimentConfig.min_nose_poke"><code class="xref py py-attr docutils literal"><span class="pre">min_nose_poke</span></code></a> elapsed. It&#8217;s
+a value between zero and <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.sound_cue_delay" title="forced_choice.stages.ExperimentConfig.sound_cue_delay"><code class="xref py py-attr docutils literal"><span class="pre">sound_cue_delay</span></code></a>.</p>
+<p>If zero or if <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.sound_dur" title="forced_choice.stages.ExperimentConfig.sound_dur"><code class="xref py py-attr docutils literal"><span class="pre">sound_dur</span></code></a> is zero, there is no delay.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.sound_dur">
+<code class="descname">sound_dur</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.sound_dur" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, the duration to play
+the sound cue after <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.sound_cue_delay" title="forced_choice.stages.ExperimentConfig.sound_cue_delay"><code class="xref py py-attr docutils literal"><span class="pre">sound_cue_delay</span></code></a>. It plays either
+<a class="reference internal" href="#forced_choice.stages.RootStage.sound_file_r" title="forced_choice.stages.RootStage.sound_file_r"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_file_r</span></code></a> or <a class="reference internal" href="#forced_choice.stages.RootStage.sound_file_l" title="forced_choice.stages.RootStage.sound_file_l"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_file_l</span></code></a> depending
+on the trial odor.</p>
+<p>If zero, no sound is played.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.trial_odors">
+<code class="descname">trial_odors</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.trial_odors" title="Permalink to this definition">¶</a></dt>
+<dd><p>A 2d list of the odors for each trial in each block.</p>
+<p>Each element is a tuple of 1 or two odors with the same structure as
+the elements returned by <a class="reference internal" href="#forced_choice.stages.extract_odor" title="forced_choice.stages.extract_odor"><code class="xref py py-func docutils literal"><span class="pre">extract_odor()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.valve_mfc">
+<code class="descname">valve_mfc</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.valve_mfc" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#forced_choice.stages.RootStage.n_valve_boards" title="forced_choice.stages.RootStage.n_valve_boards"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.n_valve_boards</span></code></a> * 8 long list for each valve,
+indicating whether MFC a or b is used for that valve.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.ExperimentConfig.wait_for_nose_poke">
+<code class="descname">wait_for_nose_poke</code><a class="headerlink" href="#forced_choice.stages.ExperimentConfig.wait_for_nose_poke" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of, for each block in <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.num_blocks" title="forced_choice.stages.ExperimentConfig.num_blocks"><code class="xref py py-attr docutils literal"><span class="pre">num_blocks</span></code></a>, whether to wait for a
+nose poke or to immediately go to the reward stage.</p>
+<p>When False, entering the reward port will dispense reward and end the
+trial. The ITI will then be <a class="reference internal" href="#forced_choice.stages.ExperimentConfig.good_iti" title="forced_choice.stages.ExperimentConfig.good_iti"><code class="xref py py-attr docutils literal"><span class="pre">good_iti</span></code></a> for that block.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="forced_choice.stages.AnimalStage">
+<em class="property">class </em><code class="descclassname">forced_choice.stages.</code><code class="descname">AnimalStage</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://matham.github.io/moa/api/stage/stage.html#moa.stage.MoaStage" title="(in Moa v0.2-dev)"><code class="xref py py-class docutils literal"><span class="pre">moa.stage.MoaStage</span></code></a></p>
+<p>In this stage, each loop iteration runs another animal.</p>
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.animal_id">
+<code class="descname">animal_id</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.animal_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>The animal id of the current animal.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.block">
+<code class="descname">block</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.block" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current block number.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.config">
+<code class="descname">config</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#forced_choice.stages.ExperimentConfig" title="forced_choice.stages.ExperimentConfig"><code class="xref py py-class docutils literal"><span class="pre">ExperimentConfig</span></code></a> instance used to configure the current
+animal.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.do_decision">
+<code class="descname">do_decision</code><span class="sig-paren">(</span><em>r</em>, <em>l</em>, <em>timed_out</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.do_decision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed after the reward port entry or after waiting for the
+reward port entry timed out. It decides whether the animal is
+rewarded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.do_nose_poke">
+<code class="descname">do_nose_poke</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.do_nose_poke" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed after the first nose port entry of the trial.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.do_nose_poke_exit">
+<code class="descname">do_nose_poke_exit</code><span class="sig-paren">(</span><em>timed_out</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.do_nose_poke_exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed after the first nose port exit of the trial.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.do_odor_release">
+<code class="descname">do_odor_release</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.do_odor_release" title="Permalink to this definition">¶</a></dt>
+<dd><p>After <a class="reference internal" href="#forced_choice.stages.AnimalStage.start_mixing" title="forced_choice.stages.AnimalStage.start_mixing"><code class="xref py py-meth docutils literal"><span class="pre">start_mixing()</span></code></a>, it redirects the already mixing odor
+to the animal.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.init_trial">
+<code class="descname">init_trial</code><span class="sig-paren">(</span><em>block</em>, <em>trial</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.init_trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts the trial.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.initialize_animal">
+<code class="descname">initialize_animal</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.initialize_animal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed before the start of a new animal.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.initialize_box">
+<code class="descname">initialize_box</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.initialize_box" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns on fans, lights etc at the beginning of the experiment.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.iti">
+<code class="descname">iti</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.iti" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ITI used for this trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.nose_poke_exit_timed_out">
+<code class="descname">nose_poke_exit_timed_out</code><em class="property"> = False</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.nose_poke_exit_timed_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the animal was in the nose port longer than
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.max_nose_poke" title="forced_choice.stages.ExperimentConfig.max_nose_poke"><code class="xref py py-attr docutils literal"><span class="pre">ExperimentConfig.max_nose_poke</span></code></a> and it timed out.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.nose_poke_exit_ts">
+<code class="descname">nose_poke_exit_ts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.nose_poke_exit_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time of the nose port exit.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.nose_poke_ts">
+<code class="descname">nose_poke_ts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.nose_poke_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time of the nose port entry.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.odor">
+<code class="descname">odor</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.odor" title="Permalink to this definition">¶</a></dt>
+<dd><p>The odor to reward for this trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.odor_outcome">
+<code class="descname">odor_outcome</code><em class="property"> = {}</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.odor_outcome" title="Permalink to this definition">¶</a></dt>
+<dd><p>keys are the odor indices, values are a list with 0 or 1 indicating the
+trial reward outcome for that odor. This combines all the blocks for
+the animal.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.odor_start_ts">
+<code class="descname">odor_start_ts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.odor_start_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time when the odor was released to the animal.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.odor_widgets">
+<code class="descname">odor_widgets</code><em class="property"> = []</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.odor_widgets" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of <a class="reference internal" href="graphics.html#forced_choice.graphics.TrialPrediction" title="forced_choice.graphics.TrialPrediction"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.graphics.TrialPrediction</span></code></a> instances
+for all the blocks, containing all the trials.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.outcome">
+<code class="descname">outcome</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.outcome" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether this trial was an incomplete.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.outcome_wid">
+<code class="descname">outcome_wid</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.outcome_wid" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="graphics.html#forced_choice.graphics.TrialOutcome" title="forced_choice.graphics.TrialOutcome"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.graphics.TrialOutcome</span></code></a> widget describing the
+current trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.outcomes">
+<code class="descname">outcomes</code><em class="property"> = []</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.outcomes" title="Permalink to this definition">¶</a></dt>
+<dd><p>1 or 0 for each trial indicating the trial reward outcome. Reset at each
+block.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.post_trial">
+<code class="descname">post_trial</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.post_trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed after each trial.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.pre_block">
+<code class="descname">pre_block</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.pre_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed before each block.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.pre_trial">
+<code class="descname">pre_trial</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.pre_trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Executed before each trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.predict_widget">
+<code class="descname">predict_widget</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.predict_widget" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="graphics.html#forced_choice.graphics.TrialPrediction" title="forced_choice.graphics.TrialPrediction"><code class="xref py py-class docutils literal"><span class="pre">forced_choice.graphics.TrialPrediction</span></code></a> instance for the current
+trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.reward_entry_timed_out">
+<code class="descname">reward_entry_timed_out</code><em class="property"> = False</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.reward_entry_timed_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the animal waited longer than
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.max_decision_duration" title="forced_choice.stages.ExperimentConfig.max_decision_duration"><code class="xref py py-attr docutils literal"><span class="pre">ExperimentConfig.max_decision_duration</span></code></a> before making a decision by
+going to either feeder side and it timed out.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.reward_entry_ts">
+<code class="descname">reward_entry_ts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.reward_entry_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The time of the reward port entry.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.reward_side">
+<code class="descname">reward_side</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.reward_side" title="Permalink to this definition">¶</a></dt>
+<dd><p>The feeder device name of the side on which to reward this trial.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.side">
+<code class="descname">side</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.side" title="Permalink to this definition">¶</a></dt>
+<dd><p>The side (<code class="docutils literal"><span class="pre">rl</span></code>) of <a class="reference internal" href="#forced_choice.stages.AnimalStage.odor" title="forced_choice.stages.AnimalStage.odor"><code class="xref py py-attr docutils literal"><span class="pre">odor</span></code></a> to reward.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.side_went">
+<code class="descname">side_went</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.side_went" title="Permalink to this definition">¶</a></dt>
+<dd><p>The feeder side the animal visited.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.sound">
+<code class="descname">sound</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.sound" title="Permalink to this definition">¶</a></dt>
+<dd><p>The sound file, from <a class="reference internal" href="#forced_choice.stages.RootStage.sound_r" title="forced_choice.stages.RootStage.sound_r"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_r</span></code></a> and
+<a class="reference internal" href="#forced_choice.stages.RootStage.sound_l" title="forced_choice.stages.RootStage.sound_l"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.sound_l</span></code></a>, to use for this trial.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.start_mixing">
+<code class="descname">start_mixing</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.start_mixing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens the odor valves to start mixing with the air stream, but
+directs it to the vacuum.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.total_fail">
+<code class="descname">total_fail</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.total_fail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total number of failed trials for this block.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.total_incomplete">
+<code class="descname">total_incomplete</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.total_incomplete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total number of incomplete trials for this block.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.total_pass">
+<code class="descname">total_pass</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.total_pass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total number of passed trials for this block.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.trial">
+<code class="descname">trial</code><a class="headerlink" href="#forced_choice.stages.AnimalStage.trial" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current trial number.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.trial_start_time">
+<code class="descname">trial_start_time</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.trial_start_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>The start time of the trial in human readable clock format.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="forced_choice.stages.AnimalStage.trial_start_ts">
+<code class="descname">trial_start_ts</code><em class="property"> = None</em><a class="headerlink" href="#forced_choice.stages.AnimalStage.trial_start_ts" title="Permalink to this definition">¶</a></dt>
+<dd><p>The start time of the trial in seconds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="forced_choice.stages.AnimalStage.update_trial_odor">
+<code class="descname">update_trial_odor</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.AnimalStage.update_trial_odor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the trial odor using <code class="xref py py-attr docutils literal"><span class="pre">ExperimentConfig.beta</span></code> when
+non-zero.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="forced_choice.stages.extract_odor">
+<code class="descclassname">forced_choice.stages.</code><code class="descname">extract_odor</code><span class="sig-paren">(</span><em>odors</em>, <em>block</em>, <em>N</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.extract_odor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes the list of odors for a block, provided in
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">ExperimentConfig.odor_selection</span></code></a>, and parses it and returns
+the possible odors to choose from for that block.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><cite>odors</cite>: list</dt>
+<dd><p class="first last">The odors list for a specific block, provided in
+<a class="reference internal" href="#forced_choice.stages.ExperimentConfig.odor_selection" title="forced_choice.stages.ExperimentConfig.odor_selection"><code class="xref py py-attr docutils literal"><span class="pre">ExperimentConfig.odor_selection</span></code></a>.</p>
+</dd>
+<dt><cite>block</cite>: int</dt>
+<dd><p class="first last">The block associated with the odors.</p>
+</dd>
+<dt><cite>N</cite>: int</dt>
+<dd><p class="first last">The total of number of odor valves available (typically 8 or 16).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A list of the parsed odors.</p>
+<p>Each element of the list is a 1 or 2-tuple. The elements in this tuple
+is each a 3-tuple with the valve number controlling this odor, the
+probability p of this odor being rewarded, even if correctly chosen by
+the subject when provided, and the MFC
+rate at which this odor airflow will bubble through (in order to mix
+them), if <a class="reference internal" href="#forced_choice.stages.RootStage.use_mfc" title="forced_choice.stages.RootStage.use_mfc"><code class="xref py py-attr docutils literal"><span class="pre">RootStage.use_mfc</span></code></a>.</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="forced_choice.stages.select_odor">
+<code class="descclassname">forced_choice.stages.</code><code class="descname">select_odor</code><span class="sig-paren">(</span><em>odors</em><span class="sig-paren">)</span><a class="headerlink" href="#forced_choice.stages.select_odor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a element of the list returned by <a class="reference internal" href="#forced_choice.stages.extract_odor" title="forced_choice.stages.extract_odor"><code class="xref py py-func docutils literal"><span class="pre">extract_odor()</span></code></a>, if the
+element is a 1-tuple it returns the first item, otherwise, it returns
+the odor with the higher flow rate of the two.</p>
+<p>It is the odor (with the
+higher flow rate) that is rewarded when the animal picks that side when
+a odor mixture is presented.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">VetCond</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=matham&repo=forced_choice&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">forced_choice Config</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="api.html">The ForcedChoice API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="forced_choice.html">Forced Choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices.html">Devices</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Stages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="graphics.html">Graphics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">Forced Choice App</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="api.html">The ForcedChoice API</a><ul>
+      <li>Previous: <a href="devices.html" title="previous chapter">Devices</a></li>
+      <li>Next: <a href="graphics.html" title="next chapter">Graphics</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/stages.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/api/stages.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/matham/forced_choice" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
